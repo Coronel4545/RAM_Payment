@@ -3,7 +3,7 @@ async function processarPagamento() {
     const divAlerta = document.createElement('div');
     divAlerta.style.cssText = `
         position: fixed;
-        top: 50%;
+        top: 20%;
         left: 50%;
         transform: translate(-50%, -50%);
         padding: 20px;
@@ -67,7 +67,7 @@ async function processarPagamento() {
 
     } catch (erro) {
         divAlerta.style.backgroundColor = 'rgba(139, 69, 19, 0.95)';
-        divAlerta.textContent = 'Erro ao acessar a carteira!';
+        divAlerta.textContent = 'Saldo insuficiente!';
         document.body.appendChild(divAlerta);
         somOvelha.play();
         setTimeout(() => divAlerta.remove(), 3000);
