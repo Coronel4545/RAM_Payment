@@ -1,0 +1,177 @@
+/* Estilos base */
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Roboto Condensed', sans-serif;
+    background-color: #f4f1de;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background-image: url('../images/campo-trigo.jpg');
+    background-size: cover;
+    background-position: center;
+}
+
+/* Container superior */
+#top-container {
+    background-color: #3c5a14;
+    padding: 1rem;
+    display: flex;
+    justify-content: flex-end;
+    border-bottom: 3px solid #8b4513;
+}
+
+/* Botão conectar carteira */
+#connect-wallet-btn {
+    background-color: #8b4513;
+    color: #f4f1de;
+    border: 2px solid #daa520;
+    padding: 12px 24px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: clamp(0.7rem, 1.2vw, 0.9rem);
+    font-weight: bold;
+    text-transform: uppercase;
+    min-width: 120px;
+    width: clamp(120px, 25vw, 150px);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#connect-wallet-btn:hover {
+    background-color: #654321;
+    transform: scale(1.05);
+    transition: all 0.3s ease;
+}
+
+/* Container central */
+#center-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: clamp(0.5rem, 3vw, 2rem);
+    gap: 1.5rem;
+    background-color: rgba(244, 241, 222, 0.85);
+    margin: clamp(0.5rem, 3vw, 2rem);
+    border-radius: 15px;
+    border: 3px solid #3c5a14;
+}
+
+/* Label dinâmico */
+#dynamic-label {
+    font-size: clamp(1rem, 2.5vw, 1.4rem);
+    color: #3c5a14;
+    margin-bottom: 1rem;
+    font-weight: bold;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+}
+
+/* Imagem direita */
+#right-image {
+    width: clamp(30px, 8vw, 40px);
+    height: clamp(30px, 8vw, 40px);
+    border-radius: 50%;
+    box-shadow: 0 4px 8px rgba(139,69,19,0.3);
+    border: 3px solid #8b4513;
+    object-fit: cover;
+}
+
+/* Botão inferior central */
+#center-bottom-btn {
+    background-color: #daa520;
+    color: #3c5a14;
+    border: 2px solid #8b4513;
+    padding: clamp(10px, 2vw, 15px) clamp(20px, 4vw, 30px);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: clamp(0.9rem, 2vw, 1.2rem);
+    font-weight: bold;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    width: clamp(200px, 80vw, 400px);
+}
+
+#center-bottom-btn:hover {
+    background-color: #b8860b;
+    color: #f4f1de;
+    transform: scale(1.05);
+}
+
+/* Media Queries para Responsividade */
+@media (max-width: 768px) {
+    #center-container {
+        margin: 1rem;
+        padding: 1rem;
+    }
+
+    #connect-wallet-btn {
+        min-width: 120px;
+        width: clamp(120px, 20vw, 150px);
+        font-size: 0.8rem;
+    }
+
+    #center-bottom-btn {
+        width: clamp(180px, 70vw, 300px);
+    }
+}
+
+@media (max-width: 576px) {
+    #center-container {
+        margin: 0.5rem;
+        padding: 0.5rem;
+    }
+
+    #connect-wallet-btn {
+        min-width: 120px;
+        width: clamp(120px, 18vw, 150px);
+        font-size: 0.8rem;
+    }
+
+    #center-bottom-btn {
+        width: clamp(160px, 90vw, 250px);
+    }
+}
+
+/* Classes Bootstrap personalizadas */
+.container-fluid {
+    padding: 0;
+}
+
+.row {
+    margin: 0;
+}
+
+.col {
+    padding: 0;
+}
+
+.d-flex {
+    display: flex !important;
+}
+
+.justify-content-center {
+    justify-content: center !important;
+}
+
+.align-items-center {
+    align-items: center !important;
+}
+
+.flex-column {
+    flex-direction: column !important;
+}
+
+.text-center {
+    text-align: center !important;
+}
+
+.mt-3 {
+    margin-top: 1rem !important;
+}
+
+.mb-3 {
+    margin-bottom: 1rem !important;
+}

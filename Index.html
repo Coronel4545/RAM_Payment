@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="Css/Estilo.css">
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.5.2/dist/web3.min.js"></script>
+    <script src="Javascript/API.js"></script>
+    <script src="Javascript/redirect.js"></script>
+    <script src="Javascript/DATA.JSON"></script>
+    <script src="Javascript/contratoABI.js"></script>
+    <title>RAM CEO - Pagamento</title>
+</head>
+<body>
+    <div id="top-container">
+        <button id="connect-wallet-btn">Conectar Carteira</button>
+    </div>
+
+    <div id="center-container">
+        <label id="dynamic-label">RAM TOKEN: 
+            <span id="ram-balance">0</span>
+        </label>
+        <img id="right-image" src="/imagem/RAM.jpg" alt="Logo RAM CEO">
+        <button id="center-bottom-btn">Pagar 1500 RAM TOKEN</button>
+    </div>
+    <script src="Javascript/Payment.js"></script>
+    <script src="Javascript/soliciteConnect.js"></script>
+</body>
+</html>
