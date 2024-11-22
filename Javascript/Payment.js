@@ -6,55 +6,26 @@ let tentativasReconexao = 0;
 const maxTentativas = 5;
 const WS_URL = window.location.hostname === 'localhost' 
     ? 'ws://localhost:8080'
-    : 'wss://apiurl-udk0.onrender.com';
+    : 'wss://apiurl-udk0.onrender.com:8080';
 
 function conectarWebSocket() {
-    // Verificar se já existe uma conexão ativa
-    if (ws && ws.readyState === WebSocket.OPEN) {
-        console.log('Já existe uma conexão WebSocket ativa');
-        return;
-    }
-
     try {
-        console.log('Iniciando nova conexão WebSocket...', WS_URL);
+        console.log('Tentando conectar ao WebSocket:', WS_URL);
         ws = new WebSocket(WS_URL);
         
-        // Adicionar headers para CORS
         ws.addEventListener('open', (event) => {
-            console.log('Conexão estabelecida com sucesso');
-            // Enviar mensagem inicial para verificar conexão
-            ws.send(JSON.stringify({ tipo: 'hello' }));
-            tentativasReconexao = 0;
+            console.log('✅ Conexão WebSocket estabelecida com sucesso');
         });
 
         ws.addEventListener('error', (error) => {
-            console.error('Erro na conexão WebSocket:', error);
-            if (tentativasReconexao < maxTentativas) {
-                const tempoEspera = Math.min(1000 * Math.pow(2, tentativasReconexao), 10000);
-                console.log(`Tentando reconectar em ${tempoEspera}ms...`);
-                setTimeout(conectarWebSocket, tempoEspera);
-                tentativasReconexao++;
-            }
+            console.error('❌ Erro na conexão WebSocket:', error);
         });
 
-        // Adicionar verificação de estado da conexão
-        setInterval(() => {
-            if (ws.readyState === WebSocket.CONNECTING) {
-                console.log('Ainda conectando...');
-            } else if (ws.readyState === WebSocket.CLOSING) {
-                console.log('Conexão fechando...');
-            } else if (ws.readyState === WebSocket.CLOSED) {
-                console.log('Conexão fechada. Tentando reconectar...');
-                conectarWebSocket();
-            }
-        }, 5000);
-
+        ws.addEventListener('close', (event) => {
+            console.log('🔴 Conexão WebSocket fechada. Código:', event.code);
+        });
     } catch (error) {
-        console.error('Erro ao inicializar WebSocket:', error);
-        if (tentativasReconexao < maxTentativas) {
-            setTimeout(conectarWebSocket, 3000);
-            tentativasReconexao++;
-        }
+        console.error('❌ Erro ao inicializar WebSocket:', error);
     }
 }
 
