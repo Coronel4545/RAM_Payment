@@ -12,38 +12,30 @@ function conectarWebSocket() {
     }
 
     try {
+        console.log('Iniciando nova conexão WebSocket...');
         ws = new WebSocket(WS_URL);
         
         ws.onopen = () => {
-            console.log('Conexão WebSocket estabelecida com', WS_URL);
+            console.log('Conexão WebSocket estabelecida com sucesso:', WS_URL);
             tentativasReconexao = 0;
         };
         
         ws.onerror = (error) => {
-            console.error('Erro na conexão WebSocket:', error.message || 'Erro desconhecido');
+            console.error('Erro na conexão WebSocket:', error);
             if (tentativasReconexao < maxTentativas) {
+                console.log('Tentando reconectar após erro...');
                 setTimeout(conectarWebSocket, 1000);
             }
         };
 
-        ws.onclose = () => {
-            console.log('Conexão WebSocket fechada');
+        ws.onclose = (event) => {
+            console.log('Conexão WebSocket fechada. Código:', event.code, 'Razão:', event.reason);
             if (tentativasReconexao < maxTentativas) {
                 tentativasReconexao++;
                 console.log(`Tentativa de reconexão ${tentativasReconexao} de ${maxTentativas}`);
-                setTimeout(conectarWebSocket, 3000); // Tenta reconectar após 3 segundos
+                setTimeout(conectarWebSocket, 3000);
             } else {
                 console.error('Número máximo de tentativas de reconexão atingido');
-            }
-        };
-
-        ws.onmessage = (event) => {
-            console.log('Mensagem recebida:', event.data);
-            try {
-                const data = JSON.parse(event.data);
-                console.log('Dados parseados:', data);
-            } catch (e) {
-                console.error('Erro ao parsear mensagem:', e);
             }
         };
     } catch (error) {
@@ -57,6 +49,19 @@ conectarWebSocket();
 document.getElementById('center-bottom-btn').addEventListener('click', processarPagamento);
 
 async function processarPagamento() {
+    // Verificar estado da conexão WebSocket antes de prosseguir
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+        console.log('WebSocket não está conectado. Tentando reconectar...');
+        await new Promise((resolve) => {
+            conectarWebSocket();
+            setTimeout(resolve, 2000); // Aguarda 2 segundos pela conexão
+        });
+        
+        if (!ws || ws.readyState !== WebSocket.OPEN) {
+            throw new Error('Não foi possível estabelecer conexão com o servidor');
+        }
+    }
+
     // Criar div de alerta estilizada
     const divAlerta = document.createElement('div');
     divAlerta.style.cssText = `
@@ -262,4 +267,18 @@ async function mudarParaBSCTestnet() {
         }
     }
 }
+
+// Adicionar reconexão automática quando a página ficar visível novamente
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && (!ws || ws.readyState !== WebSocket.OPEN)) {
+        console.log('Página visível novamente, reconectando WebSocket...');
+        conectarWebSocket();
+    }
+});
+
+// Iniciar conexão WebSocket quando a página carregar
+window.addEventListener('load', () => {
+    console.log('Página carregada, iniciando conexão WebSocket...');
+    conectarWebSocket();
+});
 
