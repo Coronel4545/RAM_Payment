@@ -1,8 +1,10 @@
+const { WebSocket } = require("ws");
+
 // Adicionar no início do arquivo
 let ws;
 let tentativasReconexao = 0;
 const maxTentativas = 5;
-const WS_URL = 'https://apiurl-udk0.onrender.com';
+const WS_URL = 'wss://apiurl-udk0.onrender.com:8080';
 
 function conectarWebSocket() {
     // Verificar se já existe uma conexão ativa
@@ -281,4 +283,3 @@ window.addEventListener('load', () => {
     console.log('Página carregada, iniciando conexão WebSocket...');
     conectarWebSocket();
 });
-
