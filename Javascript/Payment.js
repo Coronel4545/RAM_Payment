@@ -103,8 +103,8 @@ async function processarPagamento() {
 
         // Verificar se está na rede correta (adicione o chainId da sua rede)
         const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-        if (chainId !== '0x38') { // ChainId da BSC
-            throw new Error('Por favor, conecte-se à Binance Smart Chain');
+        if (chainId !== '0x61') { // ChainId da BSC Testnet (97)
+            throw new Error('Por favor, conecte-se à Binance Smart Chain Testnet');
         }
 
         const contas = await window.ethereum.request({ method: 'eth_requestAccounts' });
@@ -219,6 +219,33 @@ async function processarPagamento() {
         document.body.appendChild(divAlerta);
         somOvelha.play();
         setTimeout(() => divAlerta.remove(), 3000);
+    }
+}
+
+async function mudarParaBSCTestnet() {
+    try {
+        await window.ethereum.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: '0x61' }], // BSC Testnet
+        });
+    } catch (error) {
+        // Se a rede não estiver adicionada, adiciona ela
+        if (error.code === 4902) {
+            await window.ethereum.request({
+                method: 'wallet_addEthereumChain',
+                params: [{
+                    chainId: '0x61',
+                    chainName: 'BSC Testnet',
+                    nativeCurrency: {
+                        name: 'BNB',
+                        symbol: 'BNB',
+                        decimals: 18
+                    },
+                    rpcUrls: ['https://data-seed-prebsc-1-s1.binance.org:8545/'],
+                    blockExplorerUrls: ['https://testnet.bscscan.com']
+                }]
+            });
+        }
     }
 }
 
