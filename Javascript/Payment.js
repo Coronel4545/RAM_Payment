@@ -2,7 +2,7 @@
 let ws;
 let tentativasReconexao = 0;
 const maxTentativas = 5;
-const WS_URL = 'wss://apiurl-udk0.onrender.com:';
+const WS_URL = 'https://apiurl-udk0.onrender.com';
 
 function conectarWebSocket() {
     // Verificar se já existe uma conexão ativa
