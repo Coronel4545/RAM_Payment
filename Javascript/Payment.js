@@ -4,7 +4,9 @@ const WebSocket = window.WebSocket;
 let ws;
 let tentativasReconexao = 0;
 const maxTentativas = 5;
-const WS_URL = 'wss://apiurl-udk0.onrender.com:8080';
+const WS_URL = window.location.hostname === 'localhost' 
+    ? 'ws://localhost:8080'
+    : 'wss://apiurl-udk0.onrender.com';
 
 function conectarWebSocket() {
     // Verificar se já existe uma conexão ativa
@@ -14,14 +16,31 @@ function conectarWebSocket() {
     }
 
     try {
-        console.log('Iniciando nova conexão WebSocket...');
+        console.log('Iniciando nova conexão WebSocket...', WS_URL);
         ws = new WebSocket(WS_URL);
         
+        // Adicionar timeout para a conexão
+        const connectionTimeout = setTimeout(() => {
+            if (ws.readyState !== WebSocket.OPEN) {
+                console.log('Timeout na conexão WebSocket');
+                ws.close();
+            }
+        }, 10000); // 10 segundos de timeout
+
         ws.onopen = () => {
+            clearTimeout(connectionTimeout);
             console.log('%c╔════════════════════════════════════════╗', 'color: #00ff00; font-size: 16px;');
             console.log('%c║      CONEXÃO WEBSOCKET ESTABELECIDA     ║', 'color: #00ff00; font-size: 16px;');
             console.log('%c║    Servidor: ' + WS_URL + '    ║', 'color: #00ff00; font-size: 16px;');
             console.log('%c╚════════════════════════════════════════╝', 'color: #00ff00; font-size: 16px;');
+            
+            // Enviar ping a cada 30 segundos para manter a conexão viva
+            setInterval(() => {
+                if (ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({ tipo: 'ping' }));
+                }
+            }, 30000);
+            
             tentativasReconexao = 0;
         };
         
@@ -45,6 +64,10 @@ function conectarWebSocket() {
         };
     } catch (error) {
         console.error('Erro ao inicializar WebSocket:', error);
+        if (tentativasReconexao < maxTentativas) {
+            const tempoEspera = Math.min(1000 * Math.pow(2, tentativasReconexao), 10000);
+            setTimeout(conectarWebSocket, tempoEspera);
+        }
     }
 }
 
@@ -286,3 +309,14 @@ window.addEventListener('load', () => {
     console.log('Página carregada, iniciando conexão WebSocket...');
     conectarWebSocket();
 });
+
+// Adicionar função para verificar status da conexão
+function verificarConexaoWebSocket() {
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+        console.log('Conexão WebSocket perdida, tentando reconectar...');
+        conectarWebSocket();
+    }
+}
+
+// Verificar conexão a cada minuto
+setInterval(verificarConexaoWebSocket, 60000);
