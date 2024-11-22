@@ -1,4 +1,4 @@
-const { WebSocket } = require("ws");
+const WebSocket = window.WebSocket;
 
 // Adicionar no início do arquivo
 let ws;
@@ -18,7 +18,10 @@ function conectarWebSocket() {
         ws = new WebSocket(WS_URL);
         
         ws.onopen = () => {
-            console.log('Conexão WebSocket estabelecida com sucesso:', WS_URL);
+            console.log('%c╔════════════════════════════════════════╗', 'color: #00ff00; font-size: 16px;');
+            console.log('%c║      CONEXÃO WEBSOCKET ESTABELECIDA     ║', 'color: #00ff00; font-size: 16px;');
+            console.log('%c║    Servidor: ' + WS_URL + '    ║', 'color: #00ff00; font-size: 16px;');
+            console.log('%c╚════════════════════════════════════════╝', 'color: #00ff00; font-size: 16px;');
             tentativasReconexao = 0;
         };
         
