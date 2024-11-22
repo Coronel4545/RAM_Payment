@@ -2,6 +2,7 @@
 let ws;
 let tentativasReconexao = 0;
 const maxTentativas = 5;
+const WS_URL = 'wss://apiurl-udk0.onrender.com';
 
 function conectarWebSocket() {
     // Verificar se já existe uma conexão ativa
@@ -10,31 +11,36 @@ function conectarWebSocket() {
         return;
     }
 
-    ws = new WebSocket('wss://apiurl-udk0.onrender.com');
+    try {
+        ws = new WebSocket(WS_URL);
+        
+        ws.onopen = () => {
+            console.log('Conexão WebSocket estabelecida com', WS_URL);
+            tentativasReconexao = 0;
+            tempoReconexao = 1000;
+        };
+        
+        ws.onerror = (error) => {
+            console.error('Erro na conexão WebSocket:', error);
+            // Tentar reconectar imediatamente em caso de erro
+            if (tentativasReconexao < maxTentativas) {
+                setTimeout(conectarWebSocket, 1000);
+            }
+        };
 
-    ws.onopen = () => {
-        console.log('Conexão WebSocket estabelecida');
-        tentativasReconexao = 0;
-    };
-
-    ws.onerror = (error) => {
-        console.error('Erro na conexão WebSocket:', error);
-        // Tentar reconectar imediatamente em caso de erro
-        if (tentativasReconexao < maxTentativas) {
-            setTimeout(conectarWebSocket, 1000);
-        }
-    };
-
-    ws.onclose = () => {
-        console.log('Conexão WebSocket fechada');
-        if (tentativasReconexao < maxTentativas) {
-            tentativasReconexao++;
-            console.log(`Tentativa de reconexão ${tentativasReconexao} de ${maxTentativas}`);
-            setTimeout(conectarWebSocket, 3000); // Tenta reconectar após 3 segundos
-        } else {
-            console.error('Número máximo de tentativas de reconexão atingido');
-        }
-    };
+        ws.onclose = () => {
+            console.log('Conexão WebSocket fechada');
+            if (tentativasReconexao < maxTentativas) {
+                tentativasReconexao++;
+                console.log(`Tentativa de reconexão ${tentativasReconexao} de ${maxTentativas}`);
+                setTimeout(conectarWebSocket, 3000); // Tenta reconectar após 3 segundos
+            } else {
+                console.error('Número máximo de tentativas de reconexão atingido');
+            }
+        };
+    } catch (error) {
+        console.error('Erro ao inicializar WebSocket:', error);
+    }
 }
 
 conectarWebSocket();
