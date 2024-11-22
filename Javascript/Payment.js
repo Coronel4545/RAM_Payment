@@ -4,6 +4,12 @@ let tentativasReconexao = 0;
 const maxTentativas = 5;
 
 function conectarWebSocket() {
+    // Verificar se já existe uma conexão ativa
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        console.log('Já existe uma conexão WebSocket ativa');
+        return;
+    }
+
     ws = new WebSocket('wss://apiurl-udk0.onrender.com');
 
     ws.onopen = () => {
@@ -13,6 +19,10 @@ function conectarWebSocket() {
 
     ws.onerror = (error) => {
         console.error('Erro na conexão WebSocket:', error);
+        // Tentar reconectar imediatamente em caso de erro
+        if (tentativasReconexao < maxTentativas) {
+            setTimeout(conectarWebSocket, 1000);
+        }
     };
 
     ws.onclose = () => {
@@ -89,6 +99,12 @@ async function processarPagamento() {
         // Verificar se carteira está conectada
         if (typeof window.ethereum === 'undefined') {
             throw new Error('MetaMask não está instalado');
+        }
+
+        // Verificar se está na rede correta (adicione o chainId da sua rede)
+        const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+        if (chainId !== '0x38') { // ChainId da BSC
+            throw new Error('Por favor, conecte-se à Binance Smart Chain');
         }
 
         const contas = await window.ethereum.request({ method: 'eth_requestAccounts' });
@@ -183,12 +199,23 @@ async function processarPagamento() {
         }
 
     } catch (erro) {
-        console.error(erro);
+        console.error('Erro detalhado:', erro);
+        
+        // Tratamento específico para erro de assinatura negada
+        if (erro.code === 4001) {
+            divAlerta.style.backgroundColor = 'rgba(139, 69, 19, 0.95)';
+            divAlerta.textContent = 'Transação cancelada pelo usuário';
+        } else if (erro.code === -32603) {
+            divAlerta.style.backgroundColor = 'rgba(139, 69, 19, 0.95)';
+            divAlerta.textContent = 'Erro na rede. Verifique sua conexão e tente novamente.';
+        } else {
+            divAlerta.style.backgroundColor = 'rgba(139, 69, 19, 0.95)';
+            divAlerta.textContent = `Erro no pagamento: ${erro.message}`;
+        }
+        
         if (document.body.contains(divAlerta)) {
             divAlerta.removeChild(loadingOvelhas);
         }
-        divAlerta.style.backgroundColor = 'rgba(139, 69, 19, 0.95)';
-        divAlerta.textContent = 'Erro no pagamento! 🐑';
         document.body.appendChild(divAlerta);
         somOvelha.play();
         setTimeout(() => divAlerta.remove(), 3000);
