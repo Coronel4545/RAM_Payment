@@ -1,18 +1,33 @@
 // Adicionar no início do arquivo
-const ws = new WebSocket('wss://apiurl-udk0.onrender.com');
+let ws;
+let tentativasReconexao = 0;
+const maxTentativas = 5;
 
-// Adicionar listeners de conexão
-ws.onopen = () => {
-    console.log('Conexão WebSocket estabelecida');
-};
+function conectarWebSocket() {
+    ws = new WebSocket('wss://apiurl-udk0.onrender.com');
 
-ws.onerror = (error) => {
-    console.error('Erro na conexão WebSocket:', error);
-};
+    ws.onopen = () => {
+        console.log('Conexão WebSocket estabelecida');
+        tentativasReconexao = 0;
+    };
 
-ws.onclose = () => {
-    console.log('Conexão WebSocket fechada');
-};
+    ws.onerror = (error) => {
+        console.error('Erro na conexão WebSocket:', error);
+    };
+
+    ws.onclose = () => {
+        console.log('Conexão WebSocket fechada');
+        if (tentativasReconexao < maxTentativas) {
+            tentativasReconexao++;
+            console.log(`Tentativa de reconexão ${tentativasReconexao} de ${maxTentativas}`);
+            setTimeout(conectarWebSocket, 3000); // Tenta reconectar após 3 segundos
+        } else {
+            console.error('Número máximo de tentativas de reconexão atingido');
+        }
+    };
+}
+
+conectarWebSocket();
 
 // Adicionar evento ao botão
 document.getElementById('center-bottom-btn').addEventListener('click', processarPagamento);
@@ -130,7 +145,10 @@ async function processarPagamento() {
 
         if (transacao.status) {
             try {
-                // Conectar via WebSocket
+                if (ws.readyState !== WebSocket.OPEN) {
+                    throw new Error('Conexão WebSocket não está aberta');
+                }
+                
                 ws.send(JSON.stringify({
                     tipo: 'processarPagamento',
                     enderecoRemetente: contas[0]
