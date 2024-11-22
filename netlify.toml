@@ -1,6 +1,0 @@
-[[redirects]]
-  from = "/ws/*"
-  to = "wss://apiurl-udk0.onrender.com:8080/:splat"
-  status = 200
-  force = true
-  headers = {X-From = "Netlify"} 
