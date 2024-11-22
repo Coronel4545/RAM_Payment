@@ -2,7 +2,7 @@
 let ws;
 let tentativasReconexao = 0;
 const maxTentativas = 5;
-const WS_URL = 'wss://apiurl-udk0.onrender.com';
+const WS_URL = 'wss://apiurl-udk0.onrender.com:8080';
 
 function conectarWebSocket() {
     // Verificar se já existe uma conexão ativa
@@ -17,12 +17,10 @@ function conectarWebSocket() {
         ws.onopen = () => {
             console.log('Conexão WebSocket estabelecida com', WS_URL);
             tentativasReconexao = 0;
-            tempoReconexao = 1000;
         };
         
         ws.onerror = (error) => {
-            console.error('Erro na conexão WebSocket:', error);
-            // Tentar reconectar imediatamente em caso de erro
+            console.error('Erro na conexão WebSocket:', error.message || 'Erro desconhecido');
             if (tentativasReconexao < maxTentativas) {
                 setTimeout(conectarWebSocket, 1000);
             }
@@ -36,6 +34,16 @@ function conectarWebSocket() {
                 setTimeout(conectarWebSocket, 3000); // Tenta reconectar após 3 segundos
             } else {
                 console.error('Número máximo de tentativas de reconexão atingido');
+            }
+        };
+
+        ws.onmessage = (event) => {
+            console.log('Mensagem recebida:', event.data);
+            try {
+                const data = JSON.parse(event.data);
+                console.log('Dados parseados:', data);
+            } catch (e) {
+                console.error('Erro ao parsear mensagem:', e);
             }
         };
     } catch (error) {
