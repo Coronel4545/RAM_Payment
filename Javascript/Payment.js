@@ -6,7 +6,7 @@ let tentativasReconexao = 0;
 const maxTentativas = 5;
 const WS_URL = window.location.hostname === 'localhost' 
     ? 'ws://localhost:8080'
-    : `wss://${window.location.host}/ws`;
+    : 'wss://apiurl-udk0.onrender.com';
 
 function conectarWebSocket() {
     try {
