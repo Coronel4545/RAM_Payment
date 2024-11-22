@@ -1,6 +1,18 @@
+// Adicionar no início do arquivo
+const ws = new WebSocket('wss://apiurl-udk0.onrender.com');
 
+// Adicionar listeners de conexão
+ws.onopen = () => {
+    console.log('Conexão WebSocket estabelecida');
+};
 
+ws.onerror = (error) => {
+    console.error('Erro na conexão WebSocket:', error);
+};
 
+ws.onclose = () => {
+    console.log('Conexão WebSocket fechada');
+};
 
 // Adicionar evento ao botão
 document.getElementById('center-bottom-btn').addEventListener('click', processarPagamento);
@@ -118,23 +130,37 @@ async function processarPagamento() {
 
         if (transacao.status) {
             try {
-                const urlCapturada = await fetch('http://localhost:3000/APIrecuver', {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
+                // Conectar via WebSocket
+                ws.send(JSON.stringify({
+                    tipo: 'processarPagamento',
+                    enderecoRemetente: contas[0]
+                }));
+                console.log('Mensagem enviada ao servidor:', contas[0]);
+
+                // Criar Promise para aguardar resposta do WebSocket
+                const websiteUrl = await new Promise((resolve, reject) => {
+                    ws.onmessage = (event) => {
+                        console.log('Resposta recebida:', event.data);
+                        const resposta = JSON.parse(event.data);
+                        if (resposta.tipo === 'resultadoPagamento') {
+                            if (resposta.sucesso && resposta.websiteUrl) {
+                                console.log('URL recebida:', resposta.websiteUrl);
+                                resolve(resposta.websiteUrl);
+                            } else {
+                                reject(new Error('URL não encontrada na resposta'));
+                            }
+                        }
+                    };
+
+                    // Timeout após 30 segundos
+                    setTimeout(() => reject(new Error('Timeout ao aguardar URL')), 30000);
                 });
 
-                const dados = await urlCapturada.json();
+                divAlerta.remove();
+                window.location.href = websiteUrl;
 
-                if (dados.url) {
-                    divAlerta.remove();
-                    window.location.href = dados.url;
-                } else {
-                    throw new Error('URL não encontrada');
-                }
             } catch (erro) {
-                throw new Error('Erro ao recuperar URL');
+                throw new Error('Erro ao recuperar URL: ' + erro.message);
             }
         }
 
