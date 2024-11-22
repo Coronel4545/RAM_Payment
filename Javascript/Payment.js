@@ -6,7 +6,7 @@ let tentativasReconexao = 0;
 const maxTentativas = 5;
 const WS_URL = window.location.hostname === 'localhost' 
     ? 'ws://localhost:8080'
-    : 'wss://apiurl-udk0.onrender.com';
+    : 'wss://apiurl-udk0.onrender.com:8080';
 
 function conectarWebSocket() {
     // Verificar se já existe uma conexão ativa
@@ -19,54 +19,41 @@ function conectarWebSocket() {
         console.log('Iniciando nova conexão WebSocket...', WS_URL);
         ws = new WebSocket(WS_URL);
         
-        // Adicionar timeout para a conexão
-        const connectionTimeout = setTimeout(() => {
-            if (ws.readyState !== WebSocket.OPEN) {
-                console.log('Timeout na conexão WebSocket');
-                ws.close();
-            }
-        }, 10000); // 10 segundos de timeout
-
-        ws.onopen = () => {
-            clearTimeout(connectionTimeout);
-            console.log('%c╔════════════════════════════════════════╗', 'color: #00ff00; font-size: 16px;');
-            console.log('%c║      CONEXÃO WEBSOCKET ESTABELECIDA     ║', 'color: #00ff00; font-size: 16px;');
-            console.log('%c║    Servidor: ' + WS_URL + '    ║', 'color: #00ff00; font-size: 16px;');
-            console.log('%c╚════════════════════════════════════════╝', 'color: #00ff00; font-size: 16px;');
-            
-            // Enviar ping a cada 30 segundos para manter a conexão viva
-            setInterval(() => {
-                if (ws.readyState === WebSocket.OPEN) {
-                    ws.send(JSON.stringify({ tipo: 'ping' }));
-                }
-            }, 30000);
-            
+        // Adicionar headers para CORS
+        ws.addEventListener('open', (event) => {
+            console.log('Conexão estabelecida com sucesso');
+            // Enviar mensagem inicial para verificar conexão
+            ws.send(JSON.stringify({ tipo: 'hello' }));
             tentativasReconexao = 0;
-        };
-        
-        ws.onerror = (error) => {
+        });
+
+        ws.addEventListener('error', (error) => {
             console.error('Erro na conexão WebSocket:', error);
             if (tentativasReconexao < maxTentativas) {
-                console.log('Tentando reconectar após erro...');
-                setTimeout(conectarWebSocket, 1000);
-            }
-        };
-
-        ws.onclose = (event) => {
-            console.log('Conexão WebSocket fechada. Código:', event.code, 'Razão:', event.reason);
-            if (tentativasReconexao < maxTentativas) {
+                const tempoEspera = Math.min(1000 * Math.pow(2, tentativasReconexao), 10000);
+                console.log(`Tentando reconectar em ${tempoEspera}ms...`);
+                setTimeout(conectarWebSocket, tempoEspera);
                 tentativasReconexao++;
-                console.log(`Tentativa de reconexão ${tentativasReconexao} de ${maxTentativas}`);
-                setTimeout(conectarWebSocket, 3000);
-            } else {
-                console.error('Número máximo de tentativas de reconexão atingido');
             }
-        };
+        });
+
+        // Adicionar verificação de estado da conexão
+        setInterval(() => {
+            if (ws.readyState === WebSocket.CONNECTING) {
+                console.log('Ainda conectando...');
+            } else if (ws.readyState === WebSocket.CLOSING) {
+                console.log('Conexão fechando...');
+            } else if (ws.readyState === WebSocket.CLOSED) {
+                console.log('Conexão fechada. Tentando reconectar...');
+                conectarWebSocket();
+            }
+        }, 5000);
+
     } catch (error) {
         console.error('Erro ao inicializar WebSocket:', error);
         if (tentativasReconexao < maxTentativas) {
-            const tempoEspera = Math.min(1000 * Math.pow(2, tentativasReconexao), 10000);
-            setTimeout(conectarWebSocket, tempoEspera);
+            setTimeout(conectarWebSocket, 3000);
+            tentativasReconexao++;
         }
     }
 }
