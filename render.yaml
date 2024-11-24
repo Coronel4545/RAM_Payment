@@ -1,9 +1,0 @@
-services:
-  - type: web
-    name: ram-payment
-    buildCommand: ""
-    staticPublishPath: ./
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html 
