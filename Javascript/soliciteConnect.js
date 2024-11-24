@@ -110,13 +110,12 @@ async function desconectarCarteira() {
             // Método similar ao usado pela PancakeSwap
             await window.ethereum.request({
                 method: "wallet_requestPermissions",
-                params: []
+                params: [{ eth_accounts: {} }]
             });
 
             // Força a limpeza das permissões
             await window.ethereum.request({
-                method: "eth_accounts",
-                params: []
+                method: "eth_accounts"
             });
 
             // Verifica se realmente desconectou
