@@ -96,48 +96,46 @@ function animarSaldo(saldoFinal) {
 async function desconectarCarteira() {
     try {
         if (window.ethereum) {
-            // Verifica se ainda há contas conectadas antes de limpar
-            const contasAtuais = await window.ethereum.request({ method: 'eth_accounts' });
-            
+            // Tenta forçar a desconexão usando o método da PancakeSwap
+            await window.ethereum.request({
+                method: "wallet_requestPermissions",
+                params: [{
+                    eth_accounts: {}
+                }]
+            });
+
             // Limpa dados do front-end
             const btnCarteira = document.getElementById('connect-wallet-btn');
             btnCarteira.textContent = 'Connect';
             btnCarteira.dataset.connected = "false";
             btnCarteira.dataset.address = '';
             document.getElementById('ram-balance').textContent = '0';
-            
+
             // Remove event listeners
             btnCarteira.removeEventListener('mouseenter', () => {});
             btnCarteira.removeEventListener('mouseleave', () => {});
-            
-            // Limpa localStorage se estiver usando
-            localStorage.removeItem('walletAddress');
-            localStorage.removeItem('walletConnected');
-            
-            // Verifica novamente se a carteira foi realmente desconectada
-            const contasAposLimpeza = await window.ethereum.request({ method: 'eth_accounts' });
-            
-            if (contasAposLimpeza.length > 0) {
-                // Se ainda houver contas conectadas, avisa o usuário
-                mostrarMensagem(
-                    'Para desconectar completamente, abra sua MetaMask, clique nos três pontos ao lado da conta e selecione "Desconectar este site"',
-                    'warning'
-                );
-            } else {
+
+            // Verifica se a desconexão foi bem sucedida
+            const contasAposDesconexao = await window.ethereum.request({ 
+                method: 'eth_accounts' 
+            });
+
+            if (contasAposDesconexao.length === 0) {
                 mostrarMensagem('Carteira desconectada com sucesso!', 'success');
+            } else {
+                // Se ainda estiver conectada, tenta outro método
+                await window.ethereum.request({
+                    method: "eth_requestAccounts",
+                    params: [{ eth_accounts: {} }]
+                });
             }
 
-            // Adiciona listener para mudanças de conta
+            // Monitora mudanças de conta
             window.ethereum.on('accountsChanged', function(accounts) {
                 if (accounts.length === 0) {
-                    // Limpa dados novamente caso o usuário desconecte pela MetaMask
                     btnCarteira.textContent = 'Connect';
                     btnCarteira.dataset.connected = "false";
-                    btnCarteira.dataset.address = '';
                     document.getElementById('ram-balance').textContent = '0';
-                    localStorage.removeItem('walletAddress');
-                    localStorage.removeItem('walletConnected');
-                    mostrarMensagem('Carteira desconectada com sucesso!', 'success');
                 }
             });
         }
