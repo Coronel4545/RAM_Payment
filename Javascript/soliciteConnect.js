@@ -96,39 +96,39 @@ function animarSaldo(saldoFinal) {
 async function desconectarCarteira() {
     try {
         if (window.ethereum) {
-            // Primeiro, limpa a interface
+            // Limpa a interface primeiro
             const btnCarteira = document.getElementById('connect-wallet-btn');
             btnCarteira.textContent = 'Connect';
             btnCarteira.dataset.connected = "false";
             document.getElementById('ram-balance').textContent = '0';
 
-            // Remove listeners existentes
-            window.ethereum.removeAllListeners?.();
-            
-            // Força uma nova solicitação de conexão
+            // Remove todos os listeners existentes
+            if (window.ethereum.removeAllListeners) {
+                window.ethereum.removeAllListeners();
+            }
+
+            // Método similar ao usado pela PancakeSwap
             await window.ethereum.request({
                 method: "wallet_requestPermissions",
-                params: [{
-                    eth_accounts: {}
-                }]
-            }).then(() => {
-                // Após a solicitação, força uma desconexão
-                return window.ethereum.request({
-                    method: "eth_requestAccounts",
-                    params: []
-                });
-            }).then(async () => {
-                // Verifica se realmente desconectou
-                const contas = await window.ethereum.request({ 
-                    method: 'eth_accounts' 
-                });
-                
-                if (contas.length === 0) {
-                    mostrarMensagem('Carteira desconectada com sucesso!', 'success');
-                }
+                params: []
             });
 
-            // Adiciona novo listener para mudanças
+            // Força a limpeza das permissões
+            await window.ethereum.request({
+                method: "eth_accounts",
+                params: []
+            });
+
+            // Verifica se realmente desconectou
+            const contas = await window.ethereum.request({ 
+                method: 'eth_accounts' 
+            });
+
+            if (contas.length === 0) {
+                mostrarMensagem('Carteira desconectada com sucesso!', 'success');
+            }
+
+            // Adiciona listener para mudanças de conta
             window.ethereum.on('accountsChanged', (accounts) => {
                 if (accounts.length === 0) {
                     btnCarteira.textContent = 'Connect';
@@ -136,7 +136,6 @@ async function desconectarCarteira() {
                     document.getElementById('ram-balance').textContent = '0';
                 }
             });
-
         }
     } catch (erro) {
         console.error('Erro ao desconectar:', erro);
