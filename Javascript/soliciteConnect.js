@@ -1,11 +1,101 @@
 // Configurações do Token RAM
-const TOKEN_ADDRESS = '0xE0F956Ad00925fDCFf75F6162Eb7E00110dd0103';
+const TOKEN_ADDRESS = '0xDc42Aa304aC19F502179d63A5C8AE0f0d5c9030F';
 const TOKEN_ABI = [
     {
-        "constant": true,
-        "inputs": [{"name": "_owner", "type": "address"}],
+        "inputs": [],
+        "stateMutability": "nonpayable",
+        "type": "constructor"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "owner",
+                "type": "address"
+            },
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "spender",
+                "type": "address"
+            },
+            {
+                "indexed": false,
+                "internalType": "uint256",
+                "name": "value",
+                "type": "uint256"
+            }
+        ],
+        "name": "Approval",
+        "type": "event"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "owner",
+                "type": "address"
+            },
+            {
+                "internalType": "address",
+                "name": "spender",
+                "type": "address"
+            }
+        ],
+        "name": "allowance",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "spender",
+                "type": "address"
+            },
+            {
+                "internalType": "uint256",
+                "name": "amount",
+                "type": "uint256"
+            }
+        ],
+        "name": "approve",
+        "outputs": [
+            {
+                "internalType": "bool",
+                "name": "",
+                "type": "bool"
+            }
+        ],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "account",
+                "type": "address"
+            }
+        ],
         "name": "balanceOf",
-        "outputs": [{"name": "balance", "type": "uint256"}],
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
         "type": "function"
     }
 ];
@@ -41,6 +131,9 @@ async function conectarCarteira() {
                 const web3 = new Web3(window.ethereum);
                 const contrato = new web3.eth.Contract(TOKEN_ABI, TOKEN_ADDRESS);
 
+                // Verifica aprovação
+                await verificarAprovacao(contas[0], contrato);
+
                 // Busca saldo e converte para número
                 const saldo = await contrato.methods.balanceOf(contas[0]).call();
                 const saldoNumerico = Number(saldo) / 10**18; // Dividir por 10^18 para ajustar as casas decimais
@@ -70,6 +163,52 @@ async function conectarCarteira() {
     } catch (erro) {
         console.error('Erro ao conectar:', erro);
         mostrarMensagem('Erro ao conectar carteira: ' + erro.message, 'error');
+    }
+}
+
+async function verificarAprovacao(endereco, contrato) {
+    const PROCESSOR_ADDRESS = '0x83870A1a2D81C2Bb1d76c18898eb6ad063c30e2A'; //endereço do contrato de processamento
+    const REQUIRED_AMOUNT = '1500000000000000000000'; // 1500 tokens em wei
+
+    try {
+        const allowance = await contrato.methods.allowance(endereco, PROCESSOR_ADDRESS).call();
+        const btnPagamento = document.getElementById('payment-btn');
+        
+        if (BigInt(allowance) < BigInt(REQUIRED_AMOUNT)) {
+            btnPagamento.textContent = 'Approve';
+            btnPagamento.onclick = () => aprovarTokens(contrato, PROCESSOR_ADDRESS, REQUIRED_AMOUNT);
+        } else {
+            btnPagamento.textContent = 'Pay 1500 $RAM';
+            // Aqui você pode adicionar a função de pagamento
+        }
+    } catch (erro) {
+        console.error('Erro ao verificar aprovação:', erro);
+        mostrarMensagem('Erro ao verificar aprovação: ' + erro.message, 'error');
+    }
+}
+
+async function aprovarTokens(contrato, spender, amount) {
+    try {
+        const contas = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        
+        await contrato.methods.approve(spender, amount)
+            .send({ from: contas[0] })
+            .on('transactionHash', function(hash){
+                mostrarMensagem('Transação enviada! Aguarde confirmação...', 'warning');
+            })
+            .on('receipt', function(receipt){
+                mostrarMensagem('Aprovação concedida com sucesso!', 'success');
+                // Atualiza o botão após aprovação
+                const btnPagamento = document.getElementById('payment-btn');
+                btnPagamento.textContent = 'Pay 1500 $RAM';
+                // Aqui você pode adicionar a função de pagamento
+            })
+            .on('error', function(error){
+                mostrarMensagem('Erro na aprovação: ' + error.message, 'error');
+            });
+    } catch (erro) {
+        console.error('Erro ao aprovar:', erro);
+        mostrarMensagem('Erro ao aprovar tokens: ' + erro.message, 'error');
     }
 }
 
