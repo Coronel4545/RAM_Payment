@@ -103,16 +103,18 @@ const TOKEN_ABI = [
 // Aguarda o DOM estar completamente carregado
 document.addEventListener('DOMContentLoaded', function() {
     const btnCarteira = document.getElementById('connect-wallet-btn');
+    const btnPagamento = document.getElementById('payment-btn');
     
-    // Adiciona o evento de clique ao botão
-    btnCarteira.addEventListener('click', async function() {
-        // Verifica se está conectado ou não
-        if (btnCarteira.dataset.connected === "false") {
-            await conectarCarteira();
-        } else {
-            await desconectarCarteira();
-        }
-    });
+    // Verifica se os elementos existem antes de adicionar os eventos
+    if (btnCarteira) {
+        btnCarteira.addEventListener('click', async function() {
+            if (btnCarteira.dataset.connected === "false") {
+                await conectarCarteira();
+            } else {
+                await desconectarCarteira();
+            }
+        });
+    }
 });
 
 async function conectarCarteira() {
