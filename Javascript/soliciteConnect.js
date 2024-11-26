@@ -400,7 +400,7 @@ async function conectarCarteira() {
             if (contas.length > 0) {
                 const web3 = new Web3(window.ethereum);
                 const TOKEN_ADDRESS = '0xDc42Aa304aC19F502179d63A5C8AE0f0d5c9030F';
-                const PROCESSOR_ADDRESS = '0xEnderecoDoProcessor'; // substitua pelo endereço correto
+                const PROCESSOR_ADDRESS = '0x83870A1a2D81C2Bb1d76c18898eb6ad063c30e2A'; // substitua pelo endereço correto
                 
                 const tokenContract = new web3.eth.Contract(TOKEN_ABI, TOKEN_ADDRESS);
                 
