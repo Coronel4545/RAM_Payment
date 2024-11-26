@@ -1,4 +1,4 @@
-// Configurações do Token RAM
+
 const TOKEN_ADDRESS = '0xDc42Aa304aC19F502179d63A5C8AE0f0d5c9030F';
 const TOKEN_ABI = [
     {
