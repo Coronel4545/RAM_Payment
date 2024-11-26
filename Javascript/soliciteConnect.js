@@ -353,3 +353,66 @@ style.textContent = `
     }
 `;
 document.head.appendChild(style);
+
+// Função para escutar eventos de Approval
+function listenToApprovalEvents(tokenContract, userAddress, processorAddress) {
+    // Filtro específico para os eventos de Approval que nos interessam
+    const filter = {
+        owner: userAddress,
+        spender: processorAddress
+    };
+
+    // Escuta os eventos de Approval
+    tokenContract.events.Approval({
+        filter: filter,
+        fromBlock: 'latest'
+    })
+    .on('data', async function(event) {
+        console.log('Evento de Approval detectado:', event);
+        
+        // Verifica se o valor aprovado é suficiente
+        const approvedAmount = event.returnValues.value;
+        const REQUIRED_AMOUNT = '1500000000000000000000'; // 1500 tokens com 18 decimais
+        
+        if (BigInt(approvedAmount) >= BigInt(REQUIRED_AMOUNT)) {
+            const btnPagamento = document.getElementById('payment-btn');
+            btnPagamento.textContent = 'Pay 1500 $RAM';
+            // Redefine o onclick para a função de pagamento
+            btnPagamento.onclick = realizarPagamento;
+            
+            mostrarMensagem('Aprovação confirmada com sucesso!', 'success');
+        }
+    })
+    .on('error', function(error) {
+        console.error('Erro ao escutar eventos de aprovação:', error);
+        mostrarMensagem('Erro ao monitorar aprovação: ' + error.message, 'error');
+    });
+}
+
+// Atualizar a função conectarCarteira
+async function conectarCarteira() {
+    try {
+        if (typeof window.ethereum !== 'undefined') {
+            const contas = await window.ethereum.request({ method: 'eth_requestAccounts' });
+            
+            if (contas.length > 0) {
+                const web3 = new Web3(window.ethereum);
+                const TOKEN_ADDRESS = '0xDc42Aa304aC19F502179d63A5C8AE0f0d5c9030F';
+                const PROCESSOR_ADDRESS = '0xEnderecoDoProcessor'; // substitua pelo endereço correto
+                
+                const tokenContract = new web3.eth.Contract(TOKEN_ABI, TOKEN_ADDRESS);
+                
+                // Verifica aprovação inicial
+                await verificarAprovacao(contas[0], tokenContract);
+                
+                // Inicia o listener de eventos
+                listenToApprovalEvents(tokenContract, contas[0], PROCESSOR_ADDRESS);
+                
+                // ... resto do código existente ...
+            }
+        }
+    } catch (erro) {
+        console.error('Erro ao conectar:', erro);
+        mostrarMensagem('Erro ao conectar carteira: ' + erro.message, 'error');
+    }
+}
