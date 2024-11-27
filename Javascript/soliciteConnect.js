@@ -86,20 +86,23 @@ async function aprovarTokens(contrato, spender, amount) {
     try {
         const contas = await window.ethereum.request({ method: 'eth_requestAccounts' });
         
+        // Pega o gasPrice atual e aumenta em 20% para ser mais rápido
+        const gasPrice = await web3.eth.getGasPrice();
+        const adjustedGasPrice = Math.floor(Number(gasPrice) * 1.2).toString();
+        
         await contrato.methods.approve(spender, amount)
-            .send({ from: contas[0] })
+            .send({ 
+                from: contas[0],
+                gasPrice: adjustedGasPrice,  // Preço do gás aumentado
+                gas: 100000  // Gas limit fixo e adequado para approve
+            })
             .on('transactionHash', function(hash){
                 mostrarMensagem('Transação enviada! Aguarde confirmação...', 'warning');
             })
             .on('receipt', function(receipt){
                 mostrarMensagem('Aprovação concedida com sucesso!', 'success');
-                
-                // Atualiza o botão após aprovação
                 const btnPagamento = document.getElementById('payment-btn');
                 btnPagamento.textContent = 'Pay 1500 $RAM';
-                
-                // Remove o listener antigo de approve e adiciona o de pagamento
-                btnPagamento.onclick = realizarPagamento;
             })
             .on('error', function(error){
                 mostrarMensagem('Erro na aprovação: ' + error.message, 'error');
