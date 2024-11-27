@@ -34,6 +34,14 @@
     <title>RAM CEO - Payment</title>
 </head>
 <body>
+    <div class="sheep-loading">
+        <div class="sheep-container">
+            <img src="imagem/ovelha.png" alt="Ovelha 1" class="sheep">
+            <img src="imagem/ovelha.png" alt="Ovelha 2" class="sheep">
+            <img src="imagem/ovelha.png" alt="Ovelha 3" class="sheep">
+        </div>
+    </div>
+
     <!-- Conteúdo HTML -->
     <div class="container-fluid p-0">
         <div id="top-container" class="row m-0">
@@ -45,6 +53,15 @@
         </div>
 
         <div id="center-container" class="row m-0">
+            <!-- Div de carregamento -->
+            <div id="loading-div" class="position-absolute w-100 h-100 d-none">
+                <div class="loading-content d-flex justify-content-center align-items-center w-100 h-100">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Carregando...</span>
+                    </div>
+                </div>
+            </div>
+            
             <div class="col-12 d-flex justify-content-center align-items-center">
                 <div class="token-card">
                     <div class="token-info">
