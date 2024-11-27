@@ -5,7 +5,12 @@ class PaymentProcessor {
         this.web3 = null;
         this.userAddress = null;
         this.centerBottomBtn = null;
-        this.rpcUrl = window.RPC_URLS[97];
+        this.rpcUrls = [
+            'https://bsc-testnet.publicnode.com',
+            'https://bsc-testnet.nodereal.io/v1/your-api-key',
+            'https://data-seed-prebsc-1-s1.binance.org:8545/',
+            'https://data-seed-prebsc-2-s1.binance.org:8545/'
+        ];
     }
 
     async initializeElements() {
@@ -225,6 +230,20 @@ class PaymentProcessor {
                 window.mostrarMensagem('Erro ao desconectar: ' + error.message, 'error');
             }
         }
+    }
+
+    async connectToRPC() {
+        for (const rpcUrl of this.rpcUrls) {
+            try {
+                this.web3 = new Web3(new Web3.providers.HttpProvider(rpcUrl));
+                await this.web3.eth.net.isListening();
+                console.log(`Conectado com sucesso ao RPC: ${rpcUrl}`);
+                return true;
+            } catch (e) {
+                console.log(`Falha ao conectar com ${rpcUrl}`);
+            }
+        }
+        throw new Error('Não foi possível conectar a nenhum endpoint RPC');
     }
 }
 
