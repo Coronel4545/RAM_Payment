@@ -1,22 +1,34 @@
 class PaymentProcessor {
     constructor() {
+        this.loadingDiv = null;
+        this.sheepSound = null;
+        this.web3 = null;
+        this.userAddress = null;
+        this.centerBottomBtn = null;
+    }
+
+    async initializeElements() {
         this.loadingDiv = document.createElement('div');
         this.loadingDiv.id = 'loading-div';
         document.body.appendChild(this.loadingDiv);
         
         this.sheepSound = document.getElementById('ovelha-sound');
-        this.web3 = null;
-        this.userAddress = null;
         this.centerBottomBtn = document.getElementById('center-bottom-btn');
         
-        this.centerBottomBtn.addEventListener('click', () => {
-            console.log('Botão clicado');
-            this.realizarPagamento();
-        });
+        if (this.centerBottomBtn) {
+            this.centerBottomBtn.addEventListener('click', () => {
+                console.log('Botão clicado');
+                this.realizarPagamento();
+            });
+        } else {
+            console.error('Botão de pagamento não encontrado!');
+        }
     }
 
     async init() {
         try {
+            await this.initializeElements();
+
             console.log('Iniciando conexão com MetaMask...');
             if (typeof window.ethereum !== 'undefined') {
                 const accounts = await window.ethereum.request({ 
@@ -36,7 +48,9 @@ class PaymentProcessor {
                     });
                 }
                 
-                this.centerBottomBtn.disabled = false;
+                if (this.centerBottomBtn) {
+                    this.centerBottomBtn.disabled = false;
+                }
                 console.log('Carteira conectada:', this.userAddress);
             } else {
                 throw new Error('MetaMask não encontrada!');
@@ -44,7 +58,9 @@ class PaymentProcessor {
         } catch (error) {
             console.error('Erro na inicialização:', error);
             this.showError('Erro ao conectar: ' + error.message);
-            this.centerBottomBtn.disabled = true;
+            if (this.centerBottomBtn) {
+                this.centerBottomBtn.disabled = true;
+            }
         }
     }
 
@@ -179,6 +195,7 @@ class PaymentProcessor {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+    console.log('DOM carregado, iniciando PaymentProcessor...');
     const processor = new PaymentProcessor();
     await processor.init();
     window.paymentProcessor = processor;
@@ -284,9 +301,3 @@ const styles = `
 const styleSheet = document.createElement('style');
 styleSheet.textContent = styles;
 document.head.appendChild(styleSheet);
-
-window.addEventListener('load', async () => {
-    console.log('Página carregada, iniciando PaymentProcessor...');
-    const paymentProcessor = new PaymentProcessor();
-    await paymentProcessor.init();
-});
