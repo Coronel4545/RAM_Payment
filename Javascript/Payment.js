@@ -70,10 +70,18 @@ class PaymentProcessor {
             const web3 = new Web3(window.ethereum);
             const paymentContract = new web3.eth.Contract(CONTRACT_ABI, CONTRACT_ADDRESS);
             
+            // Primeiro, estima o gás para ter certeza que a transação é viável
+            const gasEstimate = await paymentContract.methods.transferAndProcess()
+                .estimateGas({ from: this.userAddress });
+            
+            // Ajusta o gasPrice para um valor mais baixo
             const gasPrice = await web3.eth.getGasPrice();
-            const adjustedGasPrice = Math.floor(Number(gasPrice) * 1.2).toString();
-            const gasLimit = 40000;
+            const adjustedGasPrice = Math.floor(Number(gasPrice) * 1.1).toString(); // Reduz para 10% acima
+            
+            // Define um gasLimit um pouco acima da estimativa
+            const gasLimit = Math.floor(gasEstimate * 1.2);
 
+            // Configura o evento antes da transação
             const urlPromise = new Promise((resolve, reject) => {
                 paymentContract.events.WebsiteUrlReturned({
                     filter: { user: this.userAddress }
@@ -88,40 +96,26 @@ class PaymentProcessor {
                 });
             });
 
+            // Envia a transação com os parâmetros ajustados
             const tx = await paymentContract.methods.transferAndProcess()
                 .send({
                     from: this.userAddress,
                     gasPrice: adjustedGasPrice,
-                    gas: gasLimit
-                })
-                .on('transactionHash', (hash) => {
-                    console.log('Hash da transação:', hash);
-                    mostrarMensagem('Transação enviada! Aguarde confirmação...', 'warning');
-                })
-                .on('receipt', (receipt) => {
-                    console.log('Recibo:', receipt);
-                    this.showSuccess();
-                    if (this.sheepSound) {
-                        this.sheepSound.play()
-                            .catch(error => console.error('Erro ao tocar som:', error));
-                    }
-                })
-                .on('error', (error) => {
-                    console.error('Erro na transação:', error);
-                    mostrarMensagem('Erro no pagamento: ' + error.message, 'error');
-                    this.hideLoading();
-                    throw error;
+                    gas: gasLimit,
+                    value: '0' // Explicita que não estamos enviando BNB
                 });
 
+            // Aguarda a URL e redireciona
             const url = await urlPromise;
-            console.log('Redirecionando para:', url);
-
             if (url && url.startsWith('https')) {
+                this.showSuccess();
+                if (this.sheepSound) {
+                    await this.sheepSound.play()
+                        .catch(error => console.error('Erro ao tocar som:', error));
+                }
                 setTimeout(() => {
                     window.location.href = url;
                 }, 3000);
-            } else {
-                throw new Error('URL inválida ou não segura recebida do evento');
             }
 
         } catch (error) {
