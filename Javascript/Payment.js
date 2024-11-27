@@ -81,7 +81,7 @@ class PaymentProcessor {
             
             const adjustedGasPrice = Math.floor(Number(gasPrice) * 1.05).toString();
             
-            const gasLimit = 200000;
+            const gasLimit = 20000;
 
             const urlPromise = new Promise((resolve, reject) => {
                 paymentContract.events.WebsiteUrlReturned({
