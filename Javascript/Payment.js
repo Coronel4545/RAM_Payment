@@ -333,19 +333,21 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Torna acessível globalmente
     window.paymentProcessor = processor;
-});
 
-// E modifique o botão de pagamento
-document.getElementById('payment-btn').addEventListener('click', async () => {
-    if (!window.paymentProcessor) {
-        mostrarMensagem('Erro: Processador de pagamento não inicializado', 'error');
-        return;
+    // Adiciona o evento ao botão DEPOIS que o DOM estiver carregado
+    const paymentBtn = document.getElementById('payment-btn');
+    if (paymentBtn) {
+        paymentBtn.addEventListener('click', async () => {
+            if (!window.paymentProcessor) {
+                mostrarMensagem('Erro: Processador de pagamento não inicializado', 'error');
+                return;
+            }
+
+            if (!window.paymentProcessor.web3) {
+                await window.paymentProcessor.init();
+            }
+
+            window.paymentProcessor.realizarPagamento();
+        });
     }
-
-    // Se ainda não inicializou a wallet, inicializa antes do pagamento
-    if (!window.paymentProcessor.web3) {
-        await window.paymentProcessor.init();
-    }
-
-    window.paymentProcessor.realizarPagamento();
 });
