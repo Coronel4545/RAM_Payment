@@ -92,8 +92,17 @@ const CONTRACT_ABI = [
     // ... outros métodos do contrato ...
 ];
 
+const RPC_URLS = {
+    97: 'https://data-seed-prebsc-1-s1.binance.org:8545/',
+    '97_backup': [
+        'https://data-seed-prebsc-2-s1.binance.org:8545/',
+        'https://data-seed-prebsc-1-s2.binance.org:8545/'
+    ]
+};
+
 window.CONTRACT_ADDRESS = CONTRACT_ADDRESS;
 window.RAM_TOKEN_ADDRESS = RAM_TOKEN_ADDRESS;
 window.REQUIRED_AMOUNT = REQUIRED_AMOUNT;
 window.CONTRACT_ABI = CONTRACT_ABI;
-window.TOKEN_ABI = TOKEN_ABI; 
+window.TOKEN_ABI = TOKEN_ABI;
+window.RPC_URLS = RPC_URLS; 
