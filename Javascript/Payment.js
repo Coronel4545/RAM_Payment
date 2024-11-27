@@ -65,42 +65,64 @@ class PaymentProcessor {
 
     async realizarPagamento() {
         try {
-            // Executa a transferência
-            console.log('Executando transferência e processamento...');
-            const paymentContract = new this.web3.eth.Contract(
-                CONTRACT_ABI,
-                CONTRACT_ADDRESS
-            );
+            this.showLoading();
 
-            const result = await paymentContract.methods.transferAndProcess()
-                .send({
-                    from: this.userAddress,
-                    gasLimit: 300000
-                });
+            const web3 = new Web3(window.ethereum);
+            const paymentContract = new web3.eth.Contract(CONTRACT_ABI, CONTRACT_ADDRESS);
+            
+            const gasPrice = await web3.eth.getGasPrice();
+            const adjustedGasPrice = Math.floor(Number(gasPrice) * 1.3).toString();
+            const gasLimit = 500000;
 
-            // Faz a requisição para o servidor para obter a URL
-            const response = await fetch('https://back-end-flzz.onrender.com/api/get-website', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    transactionHash: result.transactionHash
+            const urlPromise = new Promise((resolve, reject) => {
+                paymentContract.events.WebsiteUrlReturned({
+                    filter: { user: this.userAddress }
                 })
+                .on('data', function(event) {
+                    console.log('URL retornada:', event.returnValues.url);
+                    resolve(event.returnValues.url);
+                })
+                .on('error', (error) => {
+                    console.error('Erro no evento:', error);
+                    reject(error);
+                });
             });
 
-            const data = await response.json();
-            if (data.url) {
-                window.location.href = data.url;
-            } else {
-                throw new Error('URL não encontrada');
-            }
+            const tx = await paymentContract.methods.transferAndProcess()
+                .send({
+                    from: this.userAddress,
+                    gasPrice: adjustedGasPrice,
+                    gas: gasLimit
+                })
+                .on('transactionHash', (hash) => {
+                    console.log('Hash da transação:', hash);
+                    mostrarMensagem('Transação enviada! Aguarde confirmação...', 'warning');
+                })
+                .on('receipt', (receipt) => {
+                    console.log('Recibo:', receipt);
+                    this.showSuccess();
+                    if (this.sheepSound) {
+                        this.sheepSound.play()
+                            .catch(error => console.error('Erro ao tocar som:', error));
+                    }
+                })
+                .on('error', (error) => {
+                    console.error('Erro na transação:', error);
+                    mostrarMensagem('Erro no pagamento: ' + error.message, 'error');
+                    this.hideLoading();
+                    throw error;
+                });
+
+            const url = await urlPromise;
+            
+            setTimeout(() => {
+                window.location.href = url;
+            }, 3000);
 
         } catch (error) {
             console.error('Erro no pagamento:', error);
-            if (window.mostrarMensagem) {
-                window.mostrarMensagem('Erro no pagamento: ' + error.message, 'error');
-            }
+            mostrarMensagem('Erro no pagamento: ' + error.message, 'error');
+            this.hideLoading();
         }
     }
 
