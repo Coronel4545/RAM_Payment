@@ -1,21 +1,13 @@
 document.addEventListener('DOMContentLoaded', function() {
-    const btnPagamento = document.getElementById('payment-btn');
-    if (btnPagamento) {
-        btnPagamento.textContent = 'Pay 1500 $RAM';  // Sempre começa com Pay
-        
-        btnPagamento.addEventListener('click', async function() {
-            const btnCarteira = document.getElementById('connect-wallet-btn');
-            
-            if (btnCarteira.dataset.connected !== "true") {
-                mostrarMensagem('Por favor, conecte sua carteira primeiro!', 'warning');
-                return;
+    const btnCarteira = document.getElementById('connect-wallet-btn');
+    if (btnCarteira) {
+        btnCarteira.textContent = 'Connect';  // Estado inicial
+        btnCarteira.addEventListener('click', async function() {
+            if (btnCarteira.dataset.connected === "true") {
+                await desconectarCarteira();
+            } else {
+                await conectarCarteira();
             }
-
-            const web3 = new Web3(window.ethereum);
-            const contrato = new web3.eth.Contract(TOKEN_ABI, RAM_TOKEN_ADDRESS);
-            const endereco = btnCarteira.dataset.address;
-
-            await verificarAprovacao(endereco, contrato);
         });
     }
 });
@@ -32,18 +24,19 @@ async function conectarCarteira() {
                 btnCarteira.dataset.connected = "true";
                 btnCarteira.dataset.address = contas[0];
 
-                // Inicializa Web3 e contrato usando as constantes do config.js
+                // Inicializa Web3 e contrato
                 const web3 = new Web3(window.ethereum);
                 const contrato = new web3.eth.Contract(TOKEN_ABI, RAM_TOKEN_ADDRESS);
 
-                // Busca saldo
+                // Atualiza saldo
                 const saldo = await contrato.methods.balanceOf(contas[0]).call();
                 const saldoNumerico = Number(saldo) / 10**18;
-                
                 animarSaldo(saldoNumerico);
-                mostrarMensagem('Carteira conectada com sucesso!', 'success');
-                
-                // Eventos do botão
+
+                // Verifica aprovação inicial
+                await verificarAprovacao(contas[0], contrato);
+
+                // Eventos hover do botão
                 btnCarteira.addEventListener('mouseenter', () => {
                     if (btnCarteira.dataset.connected === "true") {
                         btnCarteira.textContent = 'Disconnect';
@@ -56,6 +49,8 @@ async function conectarCarteira() {
                         btnCarteira.textContent = `${endereco.slice(0, 6)}...${endereco.slice(-4)}`;
                     }
                 });
+
+                mostrarMensagem('Carteira conectada com sucesso!', 'success');
             }
         } else {
             mostrarMensagem('Por favor, instale o MetaMask!', 'error');
@@ -79,26 +74,8 @@ async function verificarAprovacao(endereco, contrato) {
             btnPagamento.onclick = () => aprovarTokens(contrato, PROCESSOR_ADDRESS, REQUIRED_AMOUNT);
         } else {
             btnPagamento.textContent = 'Pay 1500 $RAM';
+            btnPagamento.onclick = realizarPagamento;
         }
-
-        // Verifica se o contrato tem suporte a eventos antes de tentar escutar
-        if (contrato.events && typeof contrato.events.Approval === 'function') {
-            contrato.events.Approval({
-                filter: {
-                    owner: endereco,
-                    spender: PROCESSOR_ADDRESS
-                }
-            })
-            .on('data', function(event) {
-                console.log('Aprovação detectada:', event);
-                btnPagamento.textContent = 'Pay 1500 $RAM';
-                mostrarMensagem('Aprovação confirmada!', 'success');
-            })
-            .on('error', function(error) {
-                console.error('Erro ao escutar evento de aprovação:', error);
-            });
-        }
-
     } catch (erro) {
         console.error('Erro ao verificar aprovação:', erro);
         mostrarMensagem('Erro ao verificar aprovação: ' + erro.message, 'error');
