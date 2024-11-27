@@ -64,7 +64,7 @@ class PaymentProcessor {
                 .send({ 
                     from: fromAddress,
                     gasPrice: await this.web3.eth.getGasPrice(),
-                    gas: 200000
+                    : 20000
                 })
                 .on('transactionHash', (hash) => {
                     mostrarMensagem('Transação enviada! Aguarde confirmação...', 'warning');
