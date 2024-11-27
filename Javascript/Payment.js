@@ -93,55 +93,43 @@ class PaymentProcessor {
 
     async realizarPagamento() {
         try {
-            this.showLoading();
-
-            const web3 = new Web3(window.ethereum);
-            const paymentContract = new web3.eth.Contract(CONTRACT_ABI, CONTRACT_ADDRESS);
-            
-            const gasPrice = await web3.eth.getGasPrice();
-            
-            const adjustedGasPrice = Math.floor(Number(gasPrice) * 1.05).toString();
-            
-            const gasLimit = 40000;
-
-            const urlPromise = new Promise((resolve, reject) => {
-                paymentContract.events.WebsiteUrlReturned({
-                    filter: { user: this.userAddress }
-                })
-                .on('data', function(event) {
-                    console.log('URL retornada:', event.returnValues.url);
-                    resolve(event.returnValues.url);
-                })
-                .on('error', (error) => {
-                    console.error('Erro no evento:', error);
-                    reject(error);
-                });
+            // Garantir que temos a conta atual
+            const accounts = await window.ethereum.request({ 
+                method: 'eth_requestAccounts' 
             });
-
-            const tx = await paymentContract.methods.transferAndProcess()
-                .send({
-                    from: this.userAddress,
-                    gasPrice: adjustedGasPrice,
-                    gas: gasLimit,
-                    value: '0'
-                });
-
-            const url = await urlPromise;
-            if (url && url.startsWith('https')) {
-                this.showSuccess();
-                if (this.sheepSound) {
-                    await this.sheepSound.play()
-                        .catch(error => console.error('Erro ao tocar som:', error));
-                }
-                setTimeout(() => {
-                    window.location.href = url;
-                }, 3000);
+            
+            if (!accounts || accounts.length === 0) {
+                throw new Error('Nenhuma conta encontrada');
             }
 
-        } catch (error) {
-            console.error('Erro no pagamento:', error);
-            mostrarMensagem('Erro no pagamento: ' + error.message, 'error');
-            this.hideLoading();
+            const fromAddress = accounts[0];
+            
+            // Configurar a transação
+            const gasPrice = await this.web3.eth.getGasPrice();
+            const adjustedGasPrice = Math.floor(Number(gasPrice) * 1.2).toString();
+            
+            const transactionParameters = {
+                from: fromAddress,
+                to: this.PROCESSOR_ADDRESS,
+                gasPrice: adjustedGasPrice,
+                gas: '300000', // Aumentando o limite de gas
+                value: '0'
+            };
+
+            // Enviar a transação
+            const tx = await this.contract.methods.processPayment()
+                .send(transactionParameters)
+                .on('transactionHash', (hash) => {
+                    console.log('Hash da transação:', hash);
+                    mostrarMensagem('Processando pagamento...', 'warning');
+                });
+
+            console.log('Transação completada:', tx);
+            mostrarMensagem('Pagamento realizado com sucesso!', 'success');
+            
+        } catch (erro) {
+            console.error('Erro no pagamento:', erro);
+            mostrarMensagem('Erro no pagamento: ' + (erro.message || 'Erro desconhecido'), 'error');
         }
     }
 
