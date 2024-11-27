@@ -52,7 +52,9 @@ class PaymentProcessor {
 
     async realizarPagamento() {
         try {
-            document.getElementById('loading-div').style.display = 'block';
+            // Esconde o loading padrão e mostra a animação das ovelhas
+            document.getElementById('loading-div').style.display = 'none';
+            document.querySelector('.sheep-loading').style.display = 'flex';
 
             const accounts = await window.ethereum.request({ 
                 method: 'eth_requestAccounts' 
@@ -94,11 +96,11 @@ class PaymentProcessor {
                     mostrarMensagem('Transação enviada! Aguarde confirmação...', 'warning');
                 })
                 .on('receipt', (receipt) => {
-                    // Esconde div de carregamento
-                    document.getElementById('loading-div').style.display = 'none';
+                    // Esconde a animação das ovelhas
+                    document.querySelector('.sheep-loading').style.display = 'none';
                     
                     // Toca o som da ovelha
-                    const somOvelha = new Audio('assets/sheep.mp3');
+                    const somOvelha = document.getElementById('ovelha-sound');
                     somOvelha.play();
 
                     const evento = receipt.events.WebsiteUrlReturned;
@@ -109,14 +111,14 @@ class PaymentProcessor {
                     mostrarMensagem('Pagamento realizado com sucesso!', 'success');
                 })
                 .on('error', (error) => {
-                    // Esconde div de carregamento em caso de erro
-                    document.getElementById('loading-div').style.display = 'none';
+                    // Esconde a animação das ovelhas em caso de erro
+                    document.querySelector('.sheep-loading').style.display = 'none';
                     throw error;
                 });
 
         } catch (error) {
-            // Esconde div de carregamento em caso de erro
-            document.getElementById('loading-div').style.display = 'none';
+            // Esconde a animação das ovelhas em caso de erro
+            document.querySelector('.sheep-loading').style.display = 'none';
             console.error('Erro no pagamento:', error);
             mostrarMensagem('Erro no pagamento: ' + error.message, 'error');
         }
