@@ -199,13 +199,6 @@ class PaymentProcessor {
     }
 }
 
-document.addEventListener('DOMContentLoaded', async () => {
-    console.log('DOM carregado, iniciando PaymentProcessor...');
-    const processor = new PaymentProcessor();
-    await processor.init();
-    window.paymentProcessor = processor;
-});
-
 const styles = `
     .loading-container {
         position: fixed;
