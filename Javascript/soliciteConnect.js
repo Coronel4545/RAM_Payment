@@ -1,16 +1,21 @@
 document.addEventListener('DOMContentLoaded', function() {
-    const btnCarteira = document.getElementById('connect-wallet-btn');
-    
-    if (btnCarteira) {
-        btnCarteira.addEventListener('click', async function() {
-            // Verifica o estado atual do botão
-            if (btnCarteira.dataset.connected === "true") {
-                // Se estiver conectado, desconecta
-                await desconectarCarteira();
-            } else {
-                // Se estiver desconectado, conecta
-                await conectarCarteira();
+    const btnPagamento = document.getElementById('payment-btn');
+    if (btnPagamento) {
+        btnPagamento.textContent = 'Pay 1500 $RAM';  // Sempre começa com Pay
+        
+        btnPagamento.addEventListener('click', async function() {
+            const btnCarteira = document.getElementById('connect-wallet-btn');
+            
+            if (btnCarteira.dataset.connected !== "true") {
+                mostrarMensagem('Por favor, conecte sua carteira primeiro!', 'warning');
+                return;
             }
+
+            const web3 = new Web3(window.ethereum);
+            const contrato = new web3.eth.Contract(TOKEN_ABI, RAM_TOKEN_ADDRESS);
+            const endereco = btnCarteira.dataset.address;
+
+            await verificarAprovacao(endereco, contrato);
         });
     }
 });
@@ -111,14 +116,18 @@ async function aprovarTokens(contrato, spender, amount) {
             })
             .on('receipt', function(receipt){
                 mostrarMensagem('Aprovação concedida com sucesso!', 'success');
+                
                 // Atualiza o botão após aprovação
                 const btnPagamento = document.getElementById('payment-btn');
                 btnPagamento.textContent = 'Pay 1500 $RAM';
-                // Aqui você pode adicionar a função de pagamento
+                
+                // Remove o listener antigo de approve e adiciona o de pagamento
+                btnPagamento.onclick = realizarPagamento;
             })
             .on('error', function(error){
                 mostrarMensagem('Erro na aprovação: ' + error.message, 'error');
             });
+
     } catch (erro) {
         console.error('Erro ao aprovar:', erro);
         mostrarMensagem('Erro ao aprovar tokens: ' + erro.message, 'error');
@@ -150,14 +159,32 @@ async function desconectarCarteira() {
         const btnCarteira = document.getElementById('connect-wallet-btn');
         btnCarteira.textContent = 'Connect';
         btnCarteira.dataset.connected = "false";
+        btnCarteira.dataset.address = '';  // Limpa o endereço
         
         // Reseta o saldo
         document.getElementById('ram-balance').textContent = '0';
         
-        // Reseta o botão de pagamento
+        // Reseta completamente o botão de pagamento
         const btnPagamento = document.getElementById('payment-btn');
         if (btnPagamento) {
             btnPagamento.textContent = 'Pay 1500 $RAM';
+            
+            // Remove todos os listeners antigos e readiciona o listener inicial
+            const novoBtn = btnPagamento.cloneNode(true);
+            btnPagamento.parentNode.replaceChild(novoBtn, btnPagamento);
+            
+            // Readiciona o listener inicial de verificação
+            novoBtn.addEventListener('click', async function() {
+                const btnCarteira = document.getElementById('connect-wallet-btn');
+                if (btnCarteira.dataset.connected !== "true") {
+                    mostrarMensagem('Por favor, conecte sua carteira primeiro!', 'warning');
+                    return;
+                }
+                const web3 = new Web3(window.ethereum);
+                const contrato = new web3.eth.Contract(TOKEN_ABI, RAM_TOKEN_ADDRESS);
+                const endereco = btnCarteira.dataset.address;
+                await verificarAprovacao(endereco, contrato);
+            });
         }
 
         mostrarMensagem('Carteira desconectada!', 'success');
