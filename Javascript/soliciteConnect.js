@@ -31,9 +31,6 @@ async function conectarCarteira() {
                 const web3 = new Web3(window.ethereum);
                 const contrato = new web3.eth.Contract(TOKEN_ABI, RAM_TOKEN_ADDRESS);
 
-                // Verifica aprovação
-                await verificarAprovacao(contas[0], contrato);
-
                 // Busca saldo
                 const saldo = await contrato.methods.balanceOf(contas[0]).call();
                 const saldoNumerico = Number(saldo) / 10**18;
@@ -77,25 +74,25 @@ async function verificarAprovacao(endereco, contrato) {
             btnPagamento.onclick = () => aprovarTokens(contrato, PROCESSOR_ADDRESS, REQUIRED_AMOUNT);
         } else {
             btnPagamento.textContent = 'Pay 1500 $RAM';
-            btnPagamento.onclick = realizarPagamento;
         }
 
-        // Adiciona escuta do evento Approval
-        contrato.events.Approval({
-            filter: {
-                owner: endereco,
-                spender: PROCESSOR_ADDRESS
-            }
-        })
-        .on('data', function(event) {
-            console.log('Aprovação detectada:', event);
-            const btnPagamento = document.getElementById('payment-btn');
-            btnPagamento.textContent = 'Pay 1500 $RAM';
-            mostrarMensagem('Aprovação confirmada!', 'success');
-        })
-        .on('error', function(error) {
-            console.error('Erro ao escutar evento de aprovação:', error);
-        });
+        // Verifica se o contrato tem suporte a eventos antes de tentar escutar
+        if (contrato.events && typeof contrato.events.Approval === 'function') {
+            contrato.events.Approval({
+                filter: {
+                    owner: endereco,
+                    spender: PROCESSOR_ADDRESS
+                }
+            })
+            .on('data', function(event) {
+                console.log('Aprovação detectada:', event);
+                btnPagamento.textContent = 'Pay 1500 $RAM';
+                mostrarMensagem('Aprovação confirmada!', 'success');
+            })
+            .on('error', function(error) {
+                console.error('Erro ao escutar evento de aprovação:', error);
+            });
+        }
 
     } catch (erro) {
         console.error('Erro ao verificar aprovação:', erro);
