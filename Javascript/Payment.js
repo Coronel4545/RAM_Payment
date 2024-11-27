@@ -57,9 +57,8 @@ class PaymentProcessor {
             }
         } catch (error) {
             console.error('Erro na inicialização:', error);
-            this.showError('Erro ao conectar: ' + error.message);
-            if (this.centerBottomBtn) {
-                this.centerBottomBtn.disabled = true;
+            if (window.mostrarMensagem) {
+                window.mostrarMensagem('Erro ao conectar: ' + error.message, 'error');
             }
         }
     }
@@ -114,7 +113,9 @@ class PaymentProcessor {
 
         } catch (error) {
             console.error('Erro no pagamento:', error);
-            this.showError('Erro no pagamento: ' + error.message);
+            if (window.mostrarMensagem) {
+                window.mostrarMensagem('Erro no pagamento: ' + error.message, 'error');
+            }
         }
     }
 
@@ -152,14 +153,10 @@ class PaymentProcessor {
     }
 
     showError(message) {
-        this.loadingDiv.innerHTML = `
-            <div class="error-container">
-                <div class="wool-background">
-                    <div class="error-mark">✗</div>
-                    <p class="rustic-text">${message}</p>
-                </div>
-            </div>
-        `;
+        console.error(message);
+        if (window.mostrarMensagem) {
+            window.mostrarMensagem(message, 'error');
+        }
     }
 
     hideLoading() {
@@ -191,6 +188,29 @@ class PaymentProcessor {
             .estimateGas({ from: this.userAddress });
             
         return approveGas + transferGas;
+    }
+
+    async desconectarCarteira() {
+        try {
+            // ... código de desconexão ...
+
+            // Após desconectar, reseta o botão para "Pay 1500 $RAM"
+            const btnPagamento = document.getElementById('payment-btn');
+            if (btnPagamento) {
+                btnPagamento.textContent = 'Pay 1500 $RAM';
+            }
+
+            // Remove os listeners antigos e adiciona o novo
+            btnPagamento.replaceWith(btnPagamento.cloneNode(true));
+            const newBtn = document.getElementById('payment-btn');
+            newBtn.addEventListener('click', () => this.realizarPagamento());
+
+        } catch (error) {
+            console.error('Erro ao desconectar:', error);
+            if (window.mostrarMensagem) {
+                window.mostrarMensagem('Erro ao desconectar: ' + error.message, 'error');
+            }
+        }
     }
 }
 
