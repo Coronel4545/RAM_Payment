@@ -116,7 +116,10 @@ async function aprovarTokens(contrato, spender, amount) {
     try {
         const contas = await window.ethereum.request({ method: 'eth_requestAccounts' });
         
-        // Pega o gasPrice atual e aumenta em 20% para ser mais rápido
+        // Inicializa o Web3 aqui
+        const web3 = new Web3(window.ethereum);
+        
+        // Agora sim pega o gasPrice
         const gasPrice = await web3.eth.getGasPrice();
         const adjustedGasPrice = Math.floor(Number(gasPrice) * 1.2).toString();
         
