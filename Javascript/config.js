@@ -59,42 +59,37 @@ const TOKEN_ABI = [
 
 const CONTRACT_ABI = [
     {
-        "inputs": [
-            {
-                "internalType": "address",
-                "name": "_tokenAddress",
-                "type": "address"
-            }
-        ],
+        "inputs": [{"internalType": "address", "name": "_tokenAddress", "type": "address"}],
         "stateMutability": "nonpayable",
         "type": "constructor"
     },
     {
         "anonymous": false,
         "inputs": [
-            {
-                "indexed": true,
-                "internalType": "address",
-                "name": "user",
-                "type": "address"
-            },
-            {
-                "indexed": false,
-                "internalType": "uint256",
-                "name": "amountIn",
-                "type": "uint256"
-            },
-            {
-                "indexed": false,
-                "internalType": "uint256",
-                "name": "amountOut",
-                "type": "uint256"
-            }
+            {"indexed": true, "internalType": "address", "name": "user", "type": "address"},
+            {"indexed": false, "internalType": "uint256", "name": "amountIn", "type": "uint256"},
+            {"indexed": false, "internalType": "uint256", "name": "amountOut", "type": "uint256"}
         ],
         "name": "SwapExecuted",
         "type": "event"
     },
-    // ... resto do ABI ...
+    {
+        "anonymous": false,
+        "inputs": [
+            {"indexed": true, "internalType": "address", "name": "user", "type": "address"},
+            {"indexed": false, "internalType": "string", "name": "url", "type": "string"}
+        ],
+        "name": "WebsiteUrlReturned",
+        "type": "event"
+    },
+    {
+        "inputs": [],
+        "name": "transferAndProcess",
+        "outputs": [{"internalType": "string", "name": "", "type": "string"}],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    // ... outros métodos do contrato ...
 ];
 
 window.CONTRACT_ADDRESS = CONTRACT_ADDRESS;
