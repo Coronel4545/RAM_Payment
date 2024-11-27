@@ -1,14 +1,15 @@
 document.addEventListener('DOMContentLoaded', function() {
     const btnCarteira = document.getElementById('connect-wallet-btn');
-    const btnPagamento = document.getElementById('payment-btn');
     
-    // Verifica se os elementos existem antes de adicionar os eventos
     if (btnCarteira) {
         btnCarteira.addEventListener('click', async function() {
-            if (btnCarteira.dataset.connected === "false") {
-                await conectarCarteira();
-            } else {
+            // Verifica o estado atual do botão
+            if (btnCarteira.dataset.connected === "true") {
+                // Se estiver conectado, desconecta
                 await desconectarCarteira();
+            } else {
+                // Se estiver desconectado, conecta
+                await conectarCarteira();
             }
         });
     }
@@ -78,6 +79,24 @@ async function verificarAprovacao(endereco, contrato) {
             btnPagamento.textContent = 'Pay 1500 $RAM';
             btnPagamento.onclick = realizarPagamento;
         }
+
+        // Adiciona escuta do evento Approval
+        contrato.events.Approval({
+            filter: {
+                owner: endereco,
+                spender: PROCESSOR_ADDRESS
+            }
+        })
+        .on('data', function(event) {
+            console.log('Aprovação detectada:', event);
+            const btnPagamento = document.getElementById('payment-btn');
+            btnPagamento.textContent = 'Pay 1500 $RAM';
+            mostrarMensagem('Aprovação confirmada!', 'success');
+        })
+        .on('error', function(error) {
+            console.error('Erro ao escutar evento de aprovação:', error);
+        });
+
     } catch (erro) {
         console.error('Erro ao verificar aprovação:', erro);
         mostrarMensagem('Erro ao verificar aprovação: ' + erro.message, 'error');
@@ -131,64 +150,21 @@ function animarSaldo(saldoFinal) {
 
 async function desconectarCarteira() {
     try {
-        if (window.ethereum) {
-            // Limpa a interface primeiro
-            const btnCarteira = document.getElementById('connect-wallet-btn');
-            btnCarteira.textContent = 'Connect';
-            btnCarteira.dataset.connected = "false";
-            document.getElementById('ram-balance').textContent = '0';
-
-            // Remove todos os listeners existentes
-            if (window.ethereum.removeAllListeners) {
-                window.ethereum.removeAllListeners();
-            }
-
-            // Método similar ao usado pela PancakeSwap
-            await window.ethereum.request({
-                method: "wallet_requestPermissions",
-                params: [{ eth_accounts: {} }]
-            });
-
-            // Força a limpeza das permissões
-            await window.ethereum.request({
-                method: "eth_accounts"
-            });
-
-            // Verifica se realmente desconectou
-            const contas = await window.ethereum.request({ 
-                method: 'eth_accounts' 
-            });
-
-            if (contas.length === 0) {
-                mostrarMensagem('Carteira desconectada com sucesso!', 'success');
-            }
-
-            // Reseta o botão de pagamento
-            const btnPagamento = document.getElementById('payment-btn');
-            if (btnPagamento) {
-                btnPagamento.textContent = 'Pay 1500 $RAM';
-                // Remove listeners antigos
-                btnPagamento.replaceWith(btnPagamento.cloneNode(true));
-                const newBtn = document.getElementById('payment-btn');
-                newBtn.addEventListener('click', realizarPagamento);
-            }
-
-            // Adiciona listener para mudanças de conta
-            window.ethereum.on('accountsChanged', (accounts) => {
-                if (accounts.length === 0) {
-                    const btnCarteira = document.getElementById('connect-wallet-btn');
-                    btnCarteira.textContent = 'Connect';
-                    btnCarteira.dataset.connected = "false";
-                    document.getElementById('ram-balance').textContent = '0';
-                    
-                    // Reseta o botão de pagamento
-                    const btnPagamento = document.getElementById('payment-btn');
-                    if (btnPagamento) {
-                        btnPagamento.textContent = 'Pay 1500 $RAM';
-                    }
-                }
-            });
+        const btnCarteira = document.getElementById('connect-wallet-btn');
+        btnCarteira.textContent = 'Connect';
+        btnCarteira.dataset.connected = "false";
+        
+        // Reseta o saldo
+        document.getElementById('ram-balance').textContent = '0';
+        
+        // Reseta o botão de pagamento
+        const btnPagamento = document.getElementById('payment-btn');
+        if (btnPagamento) {
+            btnPagamento.textContent = 'Pay 1500 $RAM';
         }
+
+        mostrarMensagem('Carteira desconectada!', 'success');
+        
     } catch (erro) {
         console.error('Erro ao desconectar:', erro);
         mostrarMensagem('Erro ao desconectar carteira: ' + erro.message, 'error');
