@@ -163,12 +163,29 @@ async function desconectarCarteira() {
                 mostrarMensagem('Carteira desconectada com sucesso!', 'success');
             }
 
+            // Reseta o botão de pagamento
+            const btnPagamento = document.getElementById('payment-btn');
+            if (btnPagamento) {
+                btnPagamento.textContent = 'Pay 1500 $RAM';
+                // Remove listeners antigos
+                btnPagamento.replaceWith(btnPagamento.cloneNode(true));
+                const newBtn = document.getElementById('payment-btn');
+                newBtn.addEventListener('click', realizarPagamento);
+            }
+
             // Adiciona listener para mudanças de conta
             window.ethereum.on('accountsChanged', (accounts) => {
                 if (accounts.length === 0) {
+                    const btnCarteira = document.getElementById('connect-wallet-btn');
                     btnCarteira.textContent = 'Connect';
                     btnCarteira.dataset.connected = "false";
                     document.getElementById('ram-balance').textContent = '0';
+                    
+                    // Reseta o botão de pagamento
+                    const btnPagamento = document.getElementById('payment-btn');
+                    if (btnPagamento) {
+                        btnPagamento.textContent = 'Pay 1500 $RAM';
+                    }
                 }
             });
         }
