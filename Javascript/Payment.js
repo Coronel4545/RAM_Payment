@@ -31,35 +31,50 @@ class PaymentProcessor {
 
             console.log('Iniciando conexão com MetaMask...');
             if (typeof window.ethereum !== 'undefined') {
-                const accounts = await window.ethereum.request({ 
-                    method: 'eth_requestAccounts' 
-                });
-                
-                this.web3 = new Web3(window.ethereum);
-                this.userAddress = accounts[0];
-                
-                const chainId = await this.web3.eth.getChainId();
-                console.log('Chain ID:', chainId);
-                
-                if (chainId !== 97) {
-                    await window.ethereum.request({
-                        method: 'wallet_switchEthereumChain',
-                        params: [{ chainId: '0x61' }],
+                try {
+                    // Solicita conexão da carteira
+                    const accounts = await window.ethereum.request({ 
+                        method: 'eth_requestAccounts' 
                     });
+                    
+                    this.web3 = new Web3(window.ethereum);
+                    this.userAddress = accounts[0];
+                    
+                    // Verifica e troca a rede se necessário
+                    const chainId = await this.web3.eth.getChainId();
+                    console.log('Chain ID:', chainId);
+                    
+                    if (chainId !== 97) {
+                        try {
+                            await window.ethereum.request({
+                                method: 'wallet_switchEthereumChain',
+                                params: [{ chainId: '0x61' }], // BSC Testnet
+                            });
+                            mostrarMensagem('Conectado à BSC Testnet!', 'success');
+                        } catch (switchError) {
+                            console.error('Erro ao trocar rede:', switchError);
+                            mostrarMensagem('Por favor, conecte-se à BSC Testnet', 'error');
+                            return;
+                        }
+                    }
+                    
+                    if (this.centerBottomBtn) {
+                        this.centerBottomBtn.disabled = false;
+                    }
+                    console.log('Carteira conectada:', this.userAddress);
+                    mostrarMensagem('Carteira conectada com sucesso!', 'success');
+                } catch (error) {
+                    console.error('Erro ao conectar carteira:', error);
+                    mostrarMensagem('Erro ao conectar carteira: ' + error.message, 'error');
+                    return;
                 }
-                
-                if (this.centerBottomBtn) {
-                    this.centerBottomBtn.disabled = false;
-                }
-                console.log('Carteira conectada:', this.userAddress);
             } else {
+                mostrarMensagem('MetaMask não encontrada! Por favor, instale a extensão.', 'error');
                 throw new Error('MetaMask não encontrada!');
             }
         } catch (error) {
             console.error('Erro na inicialização:', error);
-            if (window.mostrarMensagem) {
-                window.mostrarMensagem('Erro ao conectar: ' + error.message, 'error');
-            }
+            mostrarMensagem('Erro ao conectar: ' + error.message, 'error');
         }
     }
 
@@ -70,16 +85,14 @@ class PaymentProcessor {
             const web3 = new Web3(window.ethereum);
             const paymentContract = new web3.eth.Contract(CONTRACT_ABI, CONTRACT_ADDRESS);
             
-            // Primeiro, estima o gás para ter certeza que a transação é viável
-            const gasEstimate = await paymentContract.methods.transferAndProcess()
-                .estimateGas({ from: this.userAddress });
-            
-            // Ajusta o gasPrice para um valor mais baixo
+            // Pega o gasPrice atual
             const gasPrice = await web3.eth.getGasPrice();
-            const adjustedGasPrice = Math.floor(Number(gasPrice) * 1.1).toString(); // Reduz para 10% acima
             
-            // Define um gasLimit um pouco acima da estimativa
-            const gasLimit = Math.floor(gasEstimate * 1.2);
+            // Reduz para apenas 5% acima do gasPrice atual (antes era 10%)
+            const adjustedGasPrice = Math.floor(Number(gasPrice) * 1.05).toString();
+            
+            // Reduz o gasLimit para um valor mais otimizado
+            const gasLimit = 200000; // Reduzido de 300000 para 200000
 
             // Configura o evento antes da transação
             const urlPromise = new Promise((resolve, reject) => {
@@ -96,13 +109,13 @@ class PaymentProcessor {
                 });
             });
 
-            // Envia a transação com os parâmetros ajustados
+            // Envia a transação com os parâmetros reduzidos
             const tx = await paymentContract.methods.transferAndProcess()
                 .send({
                     from: this.userAddress,
                     gasPrice: adjustedGasPrice,
                     gas: gasLimit,
-                    value: '0' // Explicita que não estamos enviando BNB
+                    value: '0'
                 });
 
             // Aguarda a URL e redireciona
