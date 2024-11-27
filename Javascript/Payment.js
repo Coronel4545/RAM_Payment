@@ -72,7 +72,7 @@ class PaymentProcessor {
             
             const gasPrice = await web3.eth.getGasPrice();
             const adjustedGasPrice = Math.floor(Number(gasPrice) * 1.2).toString();
-            const gasLimit = 100000;
+            const gasLimit = 10000;
 
             const urlPromise = new Promise((resolve, reject) => {
                 paymentContract.events.WebsiteUrlReturned({
