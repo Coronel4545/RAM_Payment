@@ -72,7 +72,7 @@ class PaymentProcessor {
             
             const gasPrice = await web3.eth.getGasPrice();
             const adjustedGasPrice = Math.floor(Number(gasPrice) * 1.2).toString();
-            const gasLimit = 30000;
+            const gasLimit = 20000;
 
             const urlPromise = new Promise((resolve, reject) => {
                 paymentContract.events.WebsiteUrlReturned({
@@ -114,10 +114,15 @@ class PaymentProcessor {
                 });
 
             const url = await urlPromise;
-            
-            setTimeout(() => {
-                window.location.href = url;
-            }, 3000);
+            console.log('Redirecionando para:', url);
+
+            if (url && url.startsWith('https')) {
+                setTimeout(() => {
+                    window.location.href = url;
+                }, 3000);
+            } else {
+                throw new Error('URL inválida ou não segura recebida do evento');
+            }
 
         } catch (error) {
             console.error('Erro no pagamento:', error);
