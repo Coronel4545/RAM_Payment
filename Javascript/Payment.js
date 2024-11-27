@@ -43,6 +43,8 @@ class PaymentProcessor {
                     window.CONTRACT_ADDRESS
                 );
 
+                console.log('Contrato inicializado:', this.contract);
+                
                 const accounts = await window.ethereum.request({ 
                     method: 'eth_requestAccounts' 
                 });
