@@ -321,3 +321,29 @@ const styles = `
 const styleSheet = document.createElement('style');
 styleSheet.textContent = styles;
 document.head.appendChild(styleSheet);
+
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM carregado, criando PaymentProcessor...');
+    const processor = new PaymentProcessor();
+    
+    // Apenas inicializa elementos básicos, SEM conectar wallet
+    processor.initializeElements();
+    
+    // Torna acessível globalmente
+    window.paymentProcessor = processor;
+});
+
+// E modifique o botão de pagamento
+document.getElementById('payment-btn').addEventListener('click', async () => {
+    if (!window.paymentProcessor) {
+        mostrarMensagem('Erro: Processador de pagamento não inicializado', 'error');
+        return;
+    }
+
+    // Se ainda não inicializou a wallet, inicializa antes do pagamento
+    if (!window.paymentProcessor.web3) {
+        await window.paymentProcessor.init();
+    }
+
+    window.paymentProcessor.realizarPagamento();
+});
