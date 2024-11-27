@@ -5,9 +5,9 @@ class PaymentProcessor {
         this.web3 = null;
         this.userAddress = null;
         this.centerBottomBtn = null;
+        this.contract = null;
         this.rpcUrls = [
             'https://bsc-testnet.publicnode.com',
-            'https://bsc-testnet.nodereal.io/v1/your-api-key',
             'https://data-seed-prebsc-1-s1.binance.org:8545/',
             'https://data-seed-prebsc-2-s1.binance.org:8545/'
         ];
@@ -36,59 +36,35 @@ class PaymentProcessor {
             await this.initializeElements();
 
             if (typeof window.ethereum !== 'undefined') {
-                try {
-                    // Tenta cada URL RPC até uma funcionar
-                    const rpcUrls = [
-                        'https://data-seed-prebsc-1-s1.binance.org:8545/',
-                        'https://data-seed-prebsc-2-s1.binance.org:8545/',
-                        'https://data-seed-prebsc-1-s2.binance.org:8545/'
-                    ];
+                await this.connectToRPC();
+                
+                this.contract = new this.web3.eth.Contract(
+                    window.CONTRACT_ABI,
+                    window.CONTRACT_ADDRESS
+                );
 
-                    let connected = false;
-                    for (const rpcUrl of rpcUrls) {
-                        try {
-                            this.web3 = new Web3(new Web3.providers.HttpProvider(rpcUrl));
-                            await this.web3.eth.net.isListening();
-                            connected = true;
-                            break;
-                        } catch (e) {
-                            console.log(`Falha ao conectar com ${rpcUrl}, tentando próximo...`);
-                        }
-                    }
+                const accounts = await window.ethereum.request({ 
+                    method: 'eth_requestAccounts' 
+                });
+                
+                this.userAddress = accounts[0];
+                
+                const chainId = await window.ethereum.request({
+                    method: 'eth_chainId'
+                });
 
-                    if (!connected) {
-                        throw new Error('Não foi possível conectar a nenhum RPC endpoint');
-                    }
-
-                    const accounts = await window.ethereum.request({ 
-                        method: 'eth_requestAccounts' 
+                if (chainId !== '0x61') {
+                    await window.ethereum.request({
+                        method: 'wallet_switchEthereumChain',
+                        params: [{ chainId: '0x61' }]
                     });
-                    
-                    this.userAddress = accounts[0];
-                    
-                    const chainId = await window.ethereum.request({
-                        method: 'eth_chainId'
-                    });
-
-                    if (chainId !== '0x61') {
-                        await window.ethereum.request({
-                            method: 'wallet_switchEthereumChain',
-                            params: [{ chainId: '0x61' }]
-                        });
-                    }
-
-                    mostrarMensagem('Carteira conectada com sucesso!', 'success');
-                    
-                    if (this.centerBottomBtn) {
-                        this.centerBottomBtn.disabled = false;
-                    }
-
-                } catch (error) {
-                    console.error('Erro ao conectar:', error);
-                    mostrarMensagem('Erro ao conectar: ' + error.message, 'error');
                 }
-            } else {
-                mostrarMensagem('MetaMask não encontrada!', 'error');
+
+                mostrarMensagem('Carteira conectada com sucesso!', 'success');
+                
+                if (this.centerBottomBtn) {
+                    this.centerBottomBtn.disabled = false;
+                }
             }
         } catch (error) {
             console.error('Erro na inicialização:', error);
