@@ -91,14 +91,12 @@ class PaymentProcessor {
             
             const transactionParameters = {
                 from: fromAddress,
-                to: this.PROCESSOR_ADDRESS,
                 gasPrice: adjustedGasPrice,
-                gas: '300000', // Aumentando o limite de gas
-                value: '0'
+                gas: '300000'
             };
 
-            // Enviar a transação
-            const tx = await this.contract.methods.processPayment()
+            // Mudando de processPayment para transferAndProcess
+            const tx = await this.contract.methods.transferAndProcess()
                 .send(transactionParameters)
                 .on('transactionHash', (hash) => {
                     console.log('Hash da transação:', hash);
