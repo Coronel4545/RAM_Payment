@@ -65,28 +65,13 @@ class PaymentProcessor {
 
     async realizarPagamento() {
         try {
-            const REQUIRED_AMOUNT = '1500000000000000000000'; // 1500 tokens
-            
-            // Instancia o contrato do token RAM
-            const tokenContract = new this.web3.eth.Contract(
-                TOKEN_ABI,
-                RAM_TOKEN_ADDRESS
-            );
-
-            // Primeiro aprova o contrato para transferir os tokens
-            console.log('Aprovando transferência...');
-            await tokenContract.methods.approve(CONTRACT_ADDRESS, REQUIRED_AMOUNT)
-                .send({
-                    from: this.userAddress
-                });
-
-            // Executa a transferência e processamento em uma única transação
+            // Executa a transferência
+            console.log('Executando transferência e processamento...');
             const paymentContract = new this.web3.eth.Contract(
                 CONTRACT_ABI,
                 CONTRACT_ADDRESS
             );
 
-            console.log('Executando transferência e processamento...');
             const result = await paymentContract.methods.transferAndProcess()
                 .send({
                     from: this.userAddress,
