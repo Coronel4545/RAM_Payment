@@ -66,6 +66,30 @@ async function verificarAprovacao(endereco, contrato) {
     const REQUIRED_AMOUNT = '1500000000000000000000';
 
     try {
+        // Escuta o evento de Approval
+        contrato.events.Approval({
+            filter: {
+                owner: endereco,
+                spender: PROCESSOR_ADDRESS
+            }
+        })
+        .on('data', function(event) {
+            console.log('Evento de aprovação detectado:', event);
+            // Quando detectar a aprovação, atualiza o botão
+            const btnPagamento = document.getElementById('payment-btn');
+            btnPagamento.textContent = 'Pay 1500 $RAM';
+            btnPagamento.onclick = () => {
+                if (window.paymentProcessor) {
+                    window.paymentProcessor.realizarPagamento();
+                } else {
+                    mostrarMensagem('Erro: Processador de pagamento não inicializado', 'error');
+                }
+            };
+            mostrarMensagem('Aprovação detectada!', 'success');
+        })
+        .on('error', console.error);
+
+        // Verifica o allowance atual
         const allowance = await contrato.methods.allowance(endereco, PROCESSOR_ADDRESS).call();
         const btnPagamento = document.getElementById('payment-btn');
         
@@ -74,7 +98,13 @@ async function verificarAprovacao(endereco, contrato) {
             btnPagamento.onclick = () => aprovarTokens(contrato, PROCESSOR_ADDRESS, REQUIRED_AMOUNT);
         } else {
             btnPagamento.textContent = 'Pay 1500 $RAM';
-            btnPagamento.onclick = realizarPagamento;
+            btnPagamento.onclick = () => {
+                if (window.paymentProcessor) {
+                    window.paymentProcessor.realizarPagamento();
+                } else {
+                    mostrarMensagem('Erro: Processador de pagamento não inicializado', 'error');
+                }
+            };
         }
     } catch (erro) {
         console.error('Erro ao verificar aprovação:', erro);
@@ -93,16 +123,15 @@ async function aprovarTokens(contrato, spender, amount) {
         await contrato.methods.approve(spender, amount)
             .send({ 
                 from: contas[0],
-                gasPrice: adjustedGasPrice,  // Preço do gás aumentado
-                gas: 100000  // Gas limit fixo e adequado para approve
+                gasPrice: adjustedGasPrice,
+                gas: 100000
             })
             .on('transactionHash', function(hash){
                 mostrarMensagem('Transação enviada! Aguarde confirmação...', 'warning');
             })
             .on('receipt', function(receipt){
                 mostrarMensagem('Aprovação concedida com sucesso!', 'success');
-                const btnPagamento = document.getElementById('payment-btn');
-                btnPagamento.textContent = 'Pay 1500 $RAM';
+                verificarAprovacao(contas[0], contrato);
             })
             .on('error', function(error){
                 mostrarMensagem('Erro na aprovação: ' + error.message, 'error');
