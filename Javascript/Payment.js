@@ -32,8 +32,29 @@ class PaymentProcessor {
 
             if (typeof window.ethereum !== 'undefined') {
                 try {
-                    this.web3 = new Web3(new Web3.providers.HttpProvider(this.rpcUrl));
-                    
+                    // Tenta cada URL RPC até uma funcionar
+                    const rpcUrls = [
+                        'https://data-seed-prebsc-1-s1.binance.org:8545/',
+                        'https://data-seed-prebsc-2-s1.binance.org:8545/',
+                        'https://data-seed-prebsc-1-s2.binance.org:8545/'
+                    ];
+
+                    let connected = false;
+                    for (const rpcUrl of rpcUrls) {
+                        try {
+                            this.web3 = new Web3(new Web3.providers.HttpProvider(rpcUrl));
+                            await this.web3.eth.net.isListening();
+                            connected = true;
+                            break;
+                        } catch (e) {
+                            console.log(`Falha ao conectar com ${rpcUrl}, tentando próximo...`);
+                        }
+                    }
+
+                    if (!connected) {
+                        throw new Error('Não foi possível conectar a nenhum RPC endpoint');
+                    }
+
                     const accounts = await window.ethereum.request({ 
                         method: 'eth_requestAccounts' 
                     });
@@ -81,7 +102,7 @@ class PaymentProcessor {
             
             const adjustedGasPrice = Math.floor(Number(gasPrice) * 1.05).toString();
             
-            const gasLimit = 20000;
+            const gasLimit = 40000;
 
             const urlPromise = new Promise((resolve, reject) => {
                 paymentContract.events.WebsiteUrlReturned({
