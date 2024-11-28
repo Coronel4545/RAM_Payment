@@ -9,6 +9,7 @@ class PaymentProcessor {
         this.MAX_USD_COST = 5; // Custo máximo em dólares
         this.BNB_PRICE_API = 'https://api.binance.com/api/v3/ticker/price?symbol=BNBUSDT';
         this.init();
+        this.setupEventListener();
     }
 
     async init() {
@@ -20,13 +21,6 @@ class PaymentProcessor {
                     window.CONTRACT_ABI,
                     window.CONTRACT_ADDRESS
                 );
-                
-                this.contract.events.WebsiteUrlReturned({})
-                    .on('data', (event) => {
-                        const url = event.returnValues.url;
-                        this.redirecionarParaWebsite(url);
-                    })
-                    .on('error', console.error);
                 
                 console.log('PaymentProcessor inicializado com sucesso');
                 
@@ -47,6 +41,27 @@ class PaymentProcessor {
         } catch (error) {
             console.error('Erro na inicialização:', error);
             mostrarMensagem('Erro ao inicializar: ' + error.message, 'error');
+        }
+    }
+
+    setupEventListener() {
+        if (this.contract) {
+            this.contract.events.WebsiteUrlReturned({})
+                .on('data', (event) => {
+                    const url = event.returnValues.url;
+                    if (url) {
+                        // Toca o som da ovelha
+                        const somOvelha = new Audio('sons/ovelha.mp3');
+                        somOvelha.play();
+                        
+                        // Redireciona para a URL
+                        this.redirecionarParaWebsite(url);
+                    }
+                })
+                .on('error', (error) => {
+                    console.error('Erro ao escutar evento:', error);
+                    mostrarMensagem('Erro ao processar redirecionamento', 'error');
+                });
         }
     }
 
@@ -98,26 +113,16 @@ class PaymentProcessor {
                 .on('receipt', (receipt) => {
                     // Esconde a animação das ovelhas
                     document.querySelector('.sheep-loading').style.display = 'none';
-                    
-                    // Toca o som da ovelha
-                    const somOvelha = document.getElementById('ovelha-sound');
-                    somOvelha.play();
-
-                    const evento = receipt.events.WebsiteUrlReturned;
-                    if (evento) {
-                        const url = evento.returnValues.url;
-                        this.redirecionarParaWebsite(url);
-                    }
                     mostrarMensagem('Pagamento realizado com sucesso!', 'success');
+                    
+                    // O redirecionamento será tratado pelo evento WebsiteUrlReturned
                 })
                 .on('error', (error) => {
-                    // Esconde a animação das ovelhas em caso de erro
                     document.querySelector('.sheep-loading').style.display = 'none';
                     throw error;
                 });
 
         } catch (error) {
-            // Esconde a animação das ovelhas em caso de erro
             document.querySelector('.sheep-loading').style.display = 'none';
             console.error('Erro no pagamento:', error);
             mostrarMensagem('Erro no pagamento: ' + error.message, 'error');
@@ -126,11 +131,18 @@ class PaymentProcessor {
 
     redirecionarParaWebsite(url) {
         try {
-            const urlFormatada = url.toLowerCase().trim();
+            // Trata a URL para garantir que comece com https://
+            let urlFormatada = url.toLowerCase().trim();
             if (!urlFormatada.startsWith('https://')) {
+                urlFormatada = 'https://' + urlFormatada.replace(/^(http:\/\/|\/\/|www\.)/, '');
+            }
+            
+            // Valida a URL formatada
+            if (!urlFormatada.match(/^https:\/\/[a-zA-Z0-9-_.]+\.[a-zA-Z]{2,}(\/.*)?$/)) {
                 throw new Error('URL inválida recebida do contrato');
             }
             
+            // Redireciona após um pequeno delay para garantir que o som seja tocado
             setTimeout(() => {
                 window.location.href = urlFormatada;
             }, 2000);
