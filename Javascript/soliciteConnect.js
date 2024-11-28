@@ -10,7 +10,7 @@ class WalletConnector {
         this.chainId = '0x61';
         this.currentRpcIndex = 0;
         this.web3 = null;
-        this.gasLimit = 50000;
+        this.gasLimit = 500000;
         this.init();
     }
 
@@ -65,36 +65,34 @@ class WalletConnector {
 
     async conectarWallet() {
         try {
-            if (typeof window.ethereum !== 'undefined') {
-                // Garante que temos um RPC funcionando antes de prosseguir
-                if (!this.web3) {
-                    await this.setupWeb3();
-                }
-
-                const accounts = await window.ethereum.request({ 
-                    method: 'eth_requestAccounts' 
-                });
-
-                if (accounts.length > 0) {
-                    const address = accounts[0];
-                    const btnCarteira = document.getElementById('connect-wallet-btn');
-                    
-                    try {
-                        const balance = await this.getTokenBalance(address);
-                        btnCarteira.textContent = `${balance} $RAM`;
-                        btnCarteira.dataset.connected = "true";
-                        btnCarteira.dataset.address = address;
-                        this.startBalanceUpdate(address);
-                        return true;
-                    } catch (error) {
-                        console.error('Erro ao obter saldo:', error);
-                        mostrarMensagem('Erro ao carregar saldo. Tentando novamente...', 'warning');
-                        await this.setupWeb3(); // Reinicializa o Web3 com um novo RPC
-                        return false;
-                    }
-                }
+            if (!window.ethereum) {
+                throw new Error('MetaMask não encontrada');
             }
-            return false;
+
+            // Solicita contas
+            const accounts = await window.ethereum.request({
+                method: 'eth_requestAccounts'
+            });
+
+            if (!accounts || accounts.length === 0) {
+                throw new Error('Nenhuma conta autorizada');
+            }
+
+            // Verifica e troca rede se necessário
+            await this.verificarRede();
+
+            // Atualiza botão
+            const btnCarteira = document.getElementById('connect-wallet-btn');
+            if (btnCarteira) {
+                btnCarteira.dataset.connected = "true";
+                btnCarteira.dataset.address = accounts[0];
+                btnCarteira.textContent = accounts[0].slice(0, 6) + '...' + accounts[0].slice(-4);
+            }
+
+            // Inicia monitoramento de saldo
+            this.iniciarMonitoramentoSaldo(accounts[0]);
+
+            return accounts[0];
         } catch (error) {
             console.error('Erro ao conectar wallet:', error);
             mostrarMensagem('Erro ao conectar carteira: ' + error.message, 'error');
