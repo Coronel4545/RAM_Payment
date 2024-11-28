@@ -1,12 +1,12 @@
 class WalletConnector {
     constructor() {
         this.rpcUrls = [
-            'https://bsc-dataseed.binance.org/',
-            'https://bsc-dataseed1.defibit.io/',
-            'https://bsc-dataseed1.ninicoin.io/',
-            'https://bsc-dataseed2.defibit.io/',
-            'https://bsc-dataseed3.defibit.io/',
-            'https://bsc-dataseed4.defibit.io/'
+            'https://data-seed-prebsc-1-s1.binance.org:8545/',
+            'https://data-seed-prebsc-2-s1.binance.org:8545/',
+            'https://data-seed-prebsc-1-s2.binance.org:8545/',
+            'https://data-seed-prebsc-2-s2.binance.org:8545/',
+            'https://data-seed-prebsc-1-s3.binance.org:8545/',
+            'https://data-seed-prebsc-2-s3.binance.org:8545/'
         ];
         this.currentRpcIndex = 0;
         this.web3 = null;
@@ -15,7 +15,8 @@ class WalletConnector {
 
     async init() {
         try {
-            await this.setupWeb3();
+            // Inicializa com o primeiro RPC
+            this.web3 = new Web3(new Web3.providers.HttpProvider(this.rpcUrls[0]));
         } catch (error) {
             console.error('Erro na inicialização:', error);
         }
