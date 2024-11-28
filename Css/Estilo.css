@@ -663,3 +663,31 @@ body {
         gap: 10px;
     }
 }
+
+.toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 15px 25px;
+    border-radius: 5px;
+    color: white;
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+    z-index: 1000;
+}
+
+.toast.show {
+    opacity: 1;
+}
+
+.toast-error {
+    background-color: #ff4444;
+}
+
+.toast-warning {
+    background-color: #ffbb33;
+}
+
+.toast-success {
+    background-color: #00C851;
+}
