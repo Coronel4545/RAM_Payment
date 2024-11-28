@@ -6,6 +6,15 @@ class PaymentProcessor {
     constructor() {
         this.web3 = null;
         this.contract = null;
+        this.rpcUrls = [
+            'https://data-seed-prebsc-1-s1.binance.org:8545/',
+            'https://data-seed-prebsc-2-s1.binance.org:8545/',
+            'https://data-seed-prebsc-1-s2.binance.org:8545/',
+            'https://data-seed-prebsc-2-s2.binance.org:8545/',
+            'https://data-seed-prebsc-1-s3.binance.org:8545/',
+            'https://data-seed-prebsc-2-s3.binance.org:8545/'
+        ];
+        this.currentRpcIndex = 0;
         this.MAX_USD_COST = 5;
         this.BNB_PRICE_API = 'https://api.binance.com/api/v3/ticker/price?symbol=BNBUSDT';
         this.init();
