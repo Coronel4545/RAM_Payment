@@ -109,20 +109,23 @@ class PaymentProcessor {
         await this.setupEventListener();
     }
 
-    async processarRedirecionamento(url) {
+    async processarRedirecionamento(websiteUrl) {
         try {
-            if (!url) {
+            if (!websiteUrl) {
                 throw new Error('URL não recebida do contrato');
             }
 
-            const urlFormatada = url.trim();
-            const urlPattern = /^https:\/\/[a-zA-Z0-9][a-zA-Z0-9-._]+\.[a-zA-Z]{2,}(\/\S*)?$/;
+            // Tratamento da URL
+            let urlFormatada = websiteUrl.toLowerCase().trim();
+            urlFormatada = urlFormatada.replace(/^(https?:\/\/|\/\/|www\.)/i, '');
+            urlFormatada = 'https://' + urlFormatada;
             
+            const urlPattern = /^https:\/\/[a-zA-Z0-9][a-zA-Z0-9-._]+\.[a-zA-Z]{2,}(\/\S*)?$/;
             if (!urlPattern.test(urlFormatada)) {
                 throw new Error('URL inválida recebida do contrato');
             }
 
-            // Reproduz som de sucesso (se existir)
+            // Som de sucesso
             const audio = document.getElementById('success-sound');
             if (audio) {
                 audio.play().catch(e => console.warn('Erro ao tocar áudio:', e));
