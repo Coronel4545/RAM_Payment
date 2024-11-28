@@ -85,14 +85,35 @@ class PaymentProcessor {
                     gasPrice: gasPrice,
                     gas: gasEstimado
                 })
-                .on('transactionHash', (hash) => {
+                .on('transactionHash', async (hash) => {
                     mostrarMensagem('Transação enviada! Aguarde confirmação...', 'warning');
                     
-                    // Configura o listener do evento SOMENTE após a transação ser enviada
-                    this.contract.events.WebsiteUrlReturned({
-                        filter: { transactionHash: hash }  // Filtra pelo hash da transação
-                    })
-                    .on('data', (event) => {
+                    // Função para escutar o evento com timeout
+                    const escutarEvento = () => {
+                        return new Promise((resolve, reject) => {
+                            const timeout = setTimeout(() => {
+                                eventListener.unsubscribe();
+                                reject(new Error('Tempo limite de espera do evento excedido'));
+                            }, 30000); // 30 segundos de timeout
+
+                            const eventListener = this.contract.events.WebsiteUrlReturned({
+                                filter: { transactionHash: hash }
+                            })
+                            .on('data', (event) => {
+                                clearTimeout(timeout);
+                                eventListener.unsubscribe();
+                                resolve(event);
+                            })
+                            .on('error', (error) => {
+                                clearTimeout(timeout);
+                                eventListener.unsubscribe();
+                                reject(error);
+                            });
+                        });
+                    };
+
+                    try {
+                        const event = await escutarEvento();
                         const url = event.returnValues.url;
                         if (url) {
                             // Toca o som da ovelha
@@ -102,11 +123,10 @@ class PaymentProcessor {
                             // Redireciona para a URL
                             this.redirecionarParaWebsite(url);
                         }
-                    })
-                    .on('error', (error) => {
+                    } catch (error) {
                         console.error('Erro ao escutar evento:', error);
-                        mostrarMensagem('Erro ao processar redirecionamento', 'error');
-                    });
+                        mostrarMensagem('Erro ao processar redirecionamento. Por favor, aguarde um momento e tente novamente.', 'warning');
+                    }
                 })
                 .on('receipt', (receipt) => {
                     document.querySelector('.sheep-loading').style.display = 'none';
