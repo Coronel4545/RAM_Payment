@@ -6,10 +6,9 @@ class PaymentProcessor {
     constructor() {
         this.web3 = null;
         this.contract = null;
-        this.MAX_USD_COST = 5; // Custo máximo em dólares
+        this.MAX_USD_COST = 5;
         this.BNB_PRICE_API = 'https://api.binance.com/api/v3/ticker/price?symbol=BNBUSDT';
         this.init();
-        this.setupEventListener();
     }
 
     async init() {
@@ -44,30 +43,8 @@ class PaymentProcessor {
         }
     }
 
-    setupEventListener() {
-        if (this.contract) {
-            this.contract.events.WebsiteUrlReturned({})
-                .on('data', (event) => {
-                    const url = event.returnValues.url;
-                    if (url) {
-                        // Toca o som da ovelha
-                        const somOvelha = new Audio('sons/ovelha.mp3');
-                        somOvelha.play();
-                        
-                        // Redireciona para a URL
-                        this.redirecionarParaWebsite(url);
-                    }
-                })
-                .on('error', (error) => {
-                    console.error('Erro ao escutar evento:', error);
-                    mostrarMensagem('Erro ao processar redirecionamento', 'error');
-                });
-        }
-    }
-
     async realizarPagamento() {
         try {
-            // Esconde o loading padrão e mostra a animação das ovelhas
             document.getElementById('loading-div').style.display = 'none';
             document.querySelector('.sheep-loading').style.display = 'flex';
 
@@ -101,6 +78,25 @@ class PaymentProcessor {
                 throw new Error(`Custo da transação muito alto: $${custoUSD.toFixed(2)}`);
             }
 
+            // Configura o listener do evento antes de enviar a transação
+            const eventListener = this.contract.events.WebsiteUrlReturned({})
+                .on('data', (event) => {
+                    const url = event.returnValues.url;
+                    if (url) {
+                        // Toca o som da ovelha
+                        const somOvelha = new Audio('sons/ovelha.mp3');
+                        somOvelha.play();
+                        
+                        // Redireciona para a URL
+                        this.redirecionarParaWebsite(url);
+                    }
+                })
+                .on('error', (error) => {
+                    console.error('Erro ao escutar evento:', error);
+                    mostrarMensagem('Erro ao processar redirecionamento', 'error');
+                });
+
+            // Envia a transação
             const result = await this.contract.methods.transferAndProcess()
                 .send({ 
                     from: fromAddress,
@@ -111,14 +107,13 @@ class PaymentProcessor {
                     mostrarMensagem('Transação enviada! Aguarde confirmação...', 'warning');
                 })
                 .on('receipt', (receipt) => {
-                    // Esconde a animação das ovelhas
                     document.querySelector('.sheep-loading').style.display = 'none';
                     mostrarMensagem('Pagamento realizado com sucesso!', 'success');
-                    
-                    // O redirecionamento será tratado pelo evento WebsiteUrlReturned
                 })
                 .on('error', (error) => {
                     document.querySelector('.sheep-loading').style.display = 'none';
+                    // Remove o listener em caso de erro
+                    eventListener.unsubscribe();
                     throw error;
                 });
 
@@ -131,18 +126,15 @@ class PaymentProcessor {
 
     redirecionarParaWebsite(url) {
         try {
-            // Trata a URL para garantir que comece com https://
             let urlFormatada = url.toLowerCase().trim();
             if (!urlFormatada.startsWith('https://')) {
                 urlFormatada = 'https://' + urlFormatada.replace(/^(http:\/\/|\/\/|www\.)/, '');
             }
             
-            // Valida a URL formatada
             if (!urlFormatada.match(/^https:\/\/[a-zA-Z0-9-_.]+\.[a-zA-Z]{2,}(\/.*)?$/)) {
                 throw new Error('URL inválida recebida do contrato');
             }
             
-            // Redireciona após um pequeno delay para garantir que o som seja tocado
             setTimeout(() => {
                 window.location.href = urlFormatada;
             }, 2000);
