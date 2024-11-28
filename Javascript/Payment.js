@@ -88,54 +88,36 @@ class PaymentProcessor {
                 .on('transactionHash', async (hash) => {
                     mostrarMensagem('Transação enviada! Aguarde confirmação...', 'warning');
                     
-                    // Função para escutar o evento com retry
-                    const escutarEvento = () => {
-                        return new Promise((resolve, reject) => {
-                            let tentativas = 0;
-                            const maxTentativas = 5;
-                            
-                            const configurarListener = () => {
-                                const timeout = setTimeout(() => {
-                                    if (tentativas < maxTentativas) {
-                                        tentativas++;
-                                        console.log(`Tentativa ${tentativas} de escutar evento...`);
-                                        eventListener.unsubscribe();
-                                        configurarListener(); // Tenta novamente
-                                    } else {
-                                        eventListener.unsubscribe();
-                                        reject(new Error('Tempo limite de espera do evento excedido'));
-                                    }
-                                }, 6000); // 6 segundos por tentativa
-
-                                const eventListener = this.contract.events.WebsiteUrlReturned({
-                                    filter: { transactionHash: hash }
-                                })
-                                .on('data', (event) => {
-                                    clearTimeout(timeout);
-                                    eventListener.unsubscribe();
-                                    resolve(event);
-                                })
-                                .on('error', (error) => {
-                                    clearTimeout(timeout);
-                                    // Não rejeita imediatamente em caso de erro
-                                    console.warn('Erro ao escutar evento, tentando novamente:', error);
-                                    if (tentativas < maxTentativas) {
-                                        tentativas++;
-                                        eventListener.unsubscribe();
-                                        configurarListener(); // Tenta novamente
-                                    } else {
-                                        eventListener.unsubscribe();
-                                        reject(error);
-                                    }
+                    // Função para buscar o evento
+                    const buscarEvento = async () => {
+                        let tentativas = 0;
+                        const maxTentativas = 10;
+                        const intervalo = 3000; // 3 segundos entre tentativas
+                        
+                        while (tentativas < maxTentativas) {
+                            try {
+                                const eventos = await this.contract.getPastEvents('WebsiteUrlReturned', {
+                                    filter: { transactionHash: hash },
+                                    fromBlock: 'latest'
                                 });
-                            };
-
-                            configurarListener();
-                        });
+                                
+                                if (eventos && eventos.length > 0) {
+                                    return eventos[0];
+                                }
+                                
+                                tentativas++;
+                                await new Promise(resolve => setTimeout(resolve, intervalo));
+                            } catch (error) {
+                                console.warn(`Tentativa ${tentativas + 1} falhou:`, error);
+                                tentativas++;
+                                await new Promise(resolve => setTimeout(resolve, intervalo));
+                            }
+                        }
+                        throw new Error('Não foi possível encontrar o evento após todas as tentativas');
                     };
 
                     try {
-                        const event = await escutarEvento();
+                        const event = await buscarEvento();
                         const url = event.returnValues.url;
                         if (url) {
                             // Toca o som da ovelha
@@ -146,7 +128,7 @@ class PaymentProcessor {
                             this.redirecionarParaWebsite(url);
                         }
                     } catch (error) {
-                        console.error('Erro ao escutar evento após todas as tentativas:', error);
+                        console.error('Erro ao buscar evento:', error);
                         mostrarMensagem('Por favor, aguarde. O redirecionamento pode levar alguns instantes...', 'warning');
                     }
                 })
