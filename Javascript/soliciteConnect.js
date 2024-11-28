@@ -118,7 +118,7 @@ async function checkAndUpdateApproval() {
 async function handleApprove() {
     try {
         // Definindo valores estáticos para garantir custo de $0.40
-        const gasLimit = 50000;  // Limite de gás fixo para approve
+        const gasLimit = 100000;  // Limite de gás fixo para approve
         const gasPrice = web3.utils.toWei('5', 'gwei');  // Preço do gás fixo em 5 gwei
         
         // Executa a aprovação com valores fixos
