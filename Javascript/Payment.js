@@ -328,4 +328,45 @@ class PaymentProcessor {
             throw error;
         }
     }
+
+    async verificarRede() {
+        try {
+            if (!window.ethereum) {
+                throw new Error('MetaMask não encontrada');
+            }
+            
+            const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+            if (chainId !== this.chainId) {
+                try {
+                    await window.ethereum.request({
+                        method: 'wallet_switchEthereumChain',
+                        params: [{ chainId: this.chainId }]
+                    });
+                } catch (switchError) {
+                    if (switchError.code === 4902) {
+                        await window.ethereum.request({
+                            method: 'wallet_addEthereumChain',
+                            params: [{
+                                chainId: this.chainId,
+                                chainName: 'BSC Testnet',
+                                nativeCurrency: {
+                                    name: 'tBNB',
+                                    symbol: 'tBNB',
+                                    decimals: 18
+                                },
+                                rpcUrls: this.rpcUrls,
+                                blockExplorerUrls: ['https://testnet.bscscan.com/']
+                            }]
+                        });
+                    } else {
+                        throw switchError;
+                    }
+                }
+            }
+            return true;
+        } catch (error) {
+            console.error('Erro ao verificar/trocar rede:', error);
+            throw error;
+        }
+    }
 }
