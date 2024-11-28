@@ -10,7 +10,7 @@ class WalletConnector {
         this.chainId = '0x61';
         this.currentRpcIndex = 0;
         this.web3 = null;
-        this.gasLimit = 500000;
+        this.gasLimit = 50000;
         this.init();
     }
 
