@@ -9,26 +9,32 @@ class PaymentProcessor {
         this.rpcUrls = [
             'https://data-seed-prebsc-1-s1.binance.org:8545/',
             'https://data-seed-prebsc-2-s1.binance.org:8545/',
-            'https://data-seed-prebsc-1-s2.binance.org:8545/',
-            'https://data-seed-prebsc-2-s2.binance.org:8545/',
-            'https://data-seed-prebsc-1-s3.binance.org:8545/',
-            'https://data-seed-prebsc-2-s3.binance.org:8545/'
+            'https://endpoints.omniatech.io/v1/bsc/testnet/public',
+            'https://bsc-testnet.publicnode.com',
+            'https://bsc-testnet.public.blastapi.io'
         ];
+        this.chainId = '0x61';
         this.currentRpcIndex = 0;
         this.MAX_USD_COST = 5;
         this.BNB_PRICE_API = 'https://api.binance.com/api/v3/ticker/price?symbol=BNBUSDT';
+        this.gasLimit = 500000;
+        this.eventSubscription = null;
         this.init();
     }
 
     async init() {
         try {
             if (typeof window.ethereum !== 'undefined') {
+                await this.verificarRede();
                 this.web3 = new Web3(window.ethereum);
                 
                 this.contract = new this.web3.eth.Contract(
                     window.CONTRACT_ABI,
                     window.CONTRACT_ADDRESS
                 );
+
+                // Configura escuta do evento
+                await this.setupEventListener();
                 
                 console.log('PaymentProcessor inicializado com sucesso');
                 
@@ -49,6 +55,87 @@ class PaymentProcessor {
         } catch (error) {
             console.error('Erro na inicialização:', error);
             mostrarMensagem('Erro ao inicializar: ' + error.message, 'error');
+        }
+    }
+
+    async setupEventListener() {
+        try {
+            // Cancela subscription anterior se existir
+            if (this.eventSubscription) {
+                this.eventSubscription.unsubscribe();
+            }
+
+            // Configura nova subscription
+            this.eventSubscription = this.contract.events.WebsiteUrlReturned({
+                fromBlock: 'latest'
+            })
+            .on('data', async (event) => {
+                try {
+                    const { returnValues } = event;
+                    const { user, websiteUrl } = returnValues;
+                    
+                    // Verifica se o evento é para o usuário atual
+                    const accounts = await this.web3.eth.getAccounts();
+                    if (accounts[0].toLowerCase() === user.toLowerCase()) {
+                        console.log('URL recebida do contrato:', websiteUrl);
+                        await this.processarRedirecionamento(websiteUrl);
+                    }
+                } catch (error) {
+                    console.error('Erro ao processar evento:', error);
+                    mostrarMensagem('Erro ao processar resposta do contrato', 'error');
+                }
+            })
+            .on('error', async (error) => {
+                console.error('Erro na escuta do evento:', error);
+                if (error.message.includes('JSON-RPC error')) {
+                    await this.switchRpcProvider();
+                    await this.setupEventListener(); // Tenta reconectar
+                }
+            });
+
+            console.log('Listener de eventos configurado com sucesso');
+        } catch (error) {
+            console.error('Erro ao configurar listener:', error);
+            if (error.message.includes('JSON-RPC error')) {
+                await this.switchRpcProvider();
+                await this.setupEventListener(); // Tenta reconectar
+            }
+        }
+    }
+
+    async switchRpcProvider() {
+        // ... código existente do switchRpcProvider ...
+        // Após trocar RPC, reconfigura o listener
+        await this.setupEventListener();
+    }
+
+    async processarRedirecionamento(url) {
+        try {
+            if (!url) {
+                throw new Error('URL não recebida do contrato');
+            }
+
+            const urlFormatada = url.trim();
+            const urlPattern = /^https:\/\/[a-zA-Z0-9][a-zA-Z0-9-._]+\.[a-zA-Z]{2,}(\/\S*)?$/;
+            
+            if (!urlPattern.test(urlFormatada)) {
+                throw new Error('URL inválida recebida do contrato');
+            }
+
+            // Reproduz som de sucesso (se existir)
+            const audio = document.getElementById('success-sound');
+            if (audio) {
+                audio.play().catch(e => console.warn('Erro ao tocar áudio:', e));
+            }
+
+            // Redireciona após delay
+            setTimeout(() => {
+                window.location.href = urlFormatada;
+            }, 2000);
+
+        } catch (error) {
+            console.error('Erro ao redirecionar:', error);
+            mostrarMensagem('Erro ao redirecionar: ' + error.message, 'error');
         }
     }
 
@@ -197,6 +284,48 @@ class PaymentProcessor {
         } catch (error) {
             console.error('Erro ao redirecionar:', error);
             mostrarMensagem('Erro ao redirecionar: ' + error.message, 'error');
+        }
+    }
+
+    async processPayment(endereco, contrato) {
+        try {
+            // Verifica rede antes do pagamento
+            await this.verificarRede();
+            
+            const gasPrice = await this.web3.eth.getGasPrice();
+            const tx = {
+                from: endereco,
+                to: contrato,
+                gasPrice: gasPrice,
+                gas: this.gasLimit,
+                value: '0', // Valor em wei
+                data: this.contract.methods.processPayment().encodeABI()
+            };
+
+            const receipt = await this.web3.eth.sendTransaction(tx);
+            return receipt;
+        } catch (error) {
+            if (error.message.includes('JSON-RPC error')) {
+                await this.switchRpcProvider();
+                return this.processPayment(endereco, contrato);
+            }
+            throw error;
+        }
+    }
+
+    async verificarAprovacao(endereco, contrato) {
+        try {
+            await this.verificarRede();
+            const allowance = await this.contract.methods
+                .allowance(endereco, contrato)
+                .call();
+            return allowance;
+        } catch (error) {
+            if (error.message.includes('JSON-RPC error')) {
+                await this.switchRpcProvider();
+                return this.verificarAprovacao(endereco, contrato);
+            }
+            throw error;
         }
     }
 }
