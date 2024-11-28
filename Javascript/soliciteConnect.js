@@ -11,6 +11,7 @@ class WalletConnector {
         this.currentRpcIndex = 0;
         this.web3 = null;
         this.gasLimit = 500000;
+        this.saldoInterval = null;
         this.init();
     }
 
@@ -48,17 +49,9 @@ class WalletConnector {
     async getTokenBalance(address) {
         try {
             await this.verificarRede();
-            const contract = new this.web3.eth.Contract(
-                window.TOKEN_ABI,
-                window.TOKEN_ADDRESS
-            );
-            const balance = await contract.methods.balanceOf(address).call();
-            return this.web3.utils.fromWei(balance);
+            return await this.atualizarSaldo(address);
         } catch (error) {
-            if (error.message.includes('JSON-RPC error')) {
-                await this.switchRpcProvider();
-                return this.getTokenBalance(address);
-            }
+            console.error('Erro ao buscar saldo:', error);
             throw error;
         }
     }
@@ -162,18 +155,49 @@ class WalletConnector {
     }
 
     async iniciarMonitoramentoSaldo(address) {
-        setInterval(async () => {
-            try {
-                const balance = await this.getTokenBalance(address);
-                const btnCarteira = document.getElementById('connect-wallet-btn');
-                if (btnCarteira) {
-                    btnCarteira.textContent = `${balance} $RAM`;
-                }
-            } catch (error) {
-                console.warn('Erro ao atualizar saldo:', error);
+        // Limpa intervalo anterior se existir
+        if (this.saldoInterval) {
+            clearInterval(this.saldoInterval);
+        }
+
+        // Atualiza imediatamente
+        await this.atualizarSaldo(address);
+
+        // Configura novo intervalo
+        this.saldoInterval = setInterval(async () => {
+            await this.atualizarSaldo(address);
+        }, 5000); // Reduzido para 5 segundos
+    }
+
+    async atualizarSaldo(address) {
+        try {
+            const contract = new this.web3.eth.Contract(
+                window.TOKEN_ABI,
+                window.RAM_TOKEN_ADDRESS // Certifique-se que esta constante está definida
+            );
+
+            const balance = await contract.methods.balanceOf(address).call();
+            const balanceFormatted = this.web3.utils.fromWei(balance);
+            
+            const btnCarteira = document.getElementById('connect-wallet-btn');
+            if (btnCarteira) {
+                btnCarteira.textContent = `${parseFloat(balanceFormatted).toFixed(2)} RAM`;
+                btnCarteira.dataset.balance = balanceFormatted;
+            }
+
+            // Dispara evento de atualização de saldo
+            window.dispatchEvent(new CustomEvent('balanceUpdated', {
+                detail: { balance: balanceFormatted }
+            }));
+
+            return balanceFormatted;
+        } catch (error) {
+            console.error('Erro ao atualizar saldo:', error);
+            if (error.message.includes('JSON-RPC error')) {
                 await this.switchRpcProvider();
             }
-        }, 10000);
+            throw error;
+        }
     }
 }
 
