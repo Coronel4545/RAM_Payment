@@ -69,7 +69,6 @@ class WalletConnector {
                 throw new Error('MetaMask não encontrada');
             }
 
-            // Solicita contas
             const accounts = await window.ethereum.request({
                 method: 'eth_requestAccounts'
             });
@@ -78,10 +77,8 @@ class WalletConnector {
                 throw new Error('Nenhuma conta autorizada');
             }
 
-            // Verifica e troca rede se necessário
             await this.verificarRede();
 
-            // Atualiza botão
             const btnCarteira = document.getElementById('connect-wallet-btn');
             if (btnCarteira) {
                 btnCarteira.dataset.connected = "true";
@@ -89,13 +86,16 @@ class WalletConnector {
                 btnCarteira.textContent = accounts[0].slice(0, 6) + '...' + accounts[0].slice(-4);
             }
 
-            // Inicia monitoramento de saldo
             this.iniciarMonitoramentoSaldo(accounts[0]);
 
             return accounts[0];
         } catch (error) {
             console.error('Erro ao conectar wallet:', error);
-            mostrarMensagem('Erro ao conectar carteira: ' + error.message, 'error');
+            if (window.mostrarMensagem) {
+                window.mostrarMensagem('Erro ao conectar carteira: ' + error.message, 'error');
+            } else {
+                console.error('Função mostrarMensagem não encontrada');
+            }
             return false;
         }
     }
@@ -161,18 +161,19 @@ class WalletConnector {
         }
     }
 
-    startBalanceUpdate(address) {
+    async iniciarMonitoramentoSaldo(address) {
         setInterval(async () => {
             try {
                 const balance = await this.getTokenBalance(address);
                 const btnCarteira = document.getElementById('connect-wallet-btn');
-                btnCarteira.textContent = `${balance} $RAM`;
+                if (btnCarteira) {
+                    btnCarteira.textContent = `${balance} $RAM`;
+                }
             } catch (error) {
                 console.warn('Erro ao atualizar saldo:', error);
-                // Tenta alternar RPC em caso de erro
                 await this.switchRpcProvider();
             }
-        }, 10000); // Atualiza a cada 10 segundos
+        }, 10000);
     }
 }
 
