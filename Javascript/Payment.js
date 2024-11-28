@@ -20,6 +20,7 @@ class PaymentProcessor {
         this.gasLimit = 500000;
         this.eventSubscription = null;
         this.init();
+        this.setupPaymentListeners();
     }
 
     async init() {
@@ -290,27 +291,31 @@ class PaymentProcessor {
         }
     }
 
-    async processPayment(endereco, contrato) {
+    async processPayment(endereco) {
         try {
-            // Verifica rede antes do pagamento
             await this.verificarRede();
             
             const gasPrice = await this.web3.eth.getGasPrice();
             const tx = {
                 from: endereco,
-                to: contrato,
+                to: window.CONTRACT_ADDRESS,
                 gasPrice: gasPrice,
                 gas: this.gasLimit,
-                value: '0', // Valor em wei
                 data: this.contract.methods.processPayment().encodeABI()
             };
 
             const receipt = await this.web3.eth.sendTransaction(tx);
+            
+            // Atualiza saldo após confirmação
+            if (window.walletConnector) {
+                await window.walletConnector.atualizarSaldo(endereco);
+            }
+            
             return receipt;
         } catch (error) {
             if (error.message.includes('JSON-RPC error')) {
                 await this.switchRpcProvider();
-                return this.processPayment(endereco, contrato);
+                return this.processPayment(endereco);
             }
             throw error;
         }
@@ -370,6 +375,34 @@ class PaymentProcessor {
         } catch (error) {
             console.error('Erro ao verificar/trocar rede:', error);
             throw error;
+        }
+    }
+
+    setupPaymentListeners() {
+        const btnPagamento = document.getElementById('payment-btn');
+        if (btnPagamento) {
+            btnPagamento.addEventListener('click', async () => {
+                const btnCarteira = document.getElementById('connect-wallet-btn');
+                if (btnCarteira.dataset.connected !== "true") {
+                    mostrarMensagem('Por favor, conecte sua carteira primeiro!', 'warning');
+                    return;
+                }
+                
+                try {
+                    const endereco = btnCarteira.dataset.address;
+                    await this.processPayment(endereco);
+                    
+                    // Força atualização do saldo após pagamento
+                    if (window.walletConnector) {
+                        await window.walletConnector.atualizarSaldo(endereco);
+                    }
+                    
+                    mostrarMensagem('Pagamento processado com sucesso!', 'success');
+                } catch (error) {
+                    console.error('Erro no pagamento:', error);
+                    mostrarMensagem('Erro ao processar pagamento: ' + error.message, 'error');
+                }
+            });
         }
     }
 }
