@@ -3,13 +3,14 @@ class WalletConnector {
         this.rpcUrls = [
             'https://data-seed-prebsc-1-s1.binance.org:8545/',
             'https://data-seed-prebsc-2-s1.binance.org:8545/',
-            'https://data-seed-prebsc-1-s2.binance.org:8545/',
-            'https://data-seed-prebsc-2-s2.binance.org:8545/',
-            'https://data-seed-prebsc-1-s3.binance.org:8545/',
-            'https://data-seed-prebsc-2-s3.binance.org:8545/'
+            'https://endpoints.omniatech.io/v1/bsc/testnet/public',
+            'https://bsc-testnet.publicnode.com',
+            'https://bsc-testnet.public.blastapi.io'
         ];
+        this.chainId = '0x61';
         this.currentRpcIndex = 0;
         this.web3 = null;
+        this.gasLimit = 500000;
         this.init();
     }
 
@@ -45,31 +46,20 @@ class WalletConnector {
     }
 
     async getTokenBalance(address) {
-        let attempts = 0;
-        const maxAttempts = 3;
-
-        while (attempts < maxAttempts) {
-            try {
-                // Verifica se o web3 está inicializado
-                if (!this.web3) {
-                    await this.setupWeb3();
-                }
-
-                const contract = new this.web3.eth.Contract(TOKEN_ABI, RAM_TOKEN_ADDRESS);
-                
-                // Verifica se o contrato está acessível
-                await contract.methods.decimals().call();
-                
-                const balance = await contract.methods.balanceOf(address).call();
-                return (balance / 1e18).toFixed(3);
-            } catch (error) {
-                attempts++;
-                if (attempts === maxAttempts) {
-                    throw error;
-                }
+        try {
+            await this.verificarRede();
+            const contract = new this.web3.eth.Contract(
+                window.TOKEN_ABI,
+                window.TOKEN_ADDRESS
+            );
+            const balance = await contract.methods.balanceOf(address).call();
+            return this.web3.utils.fromWei(balance);
+        } catch (error) {
+            if (error.message.includes('JSON-RPC error')) {
                 await this.switchRpcProvider();
-                await new Promise(resolve => setTimeout(resolve, 1000)); // Espera 1 segundo antes de tentar novamente
+                return this.getTokenBalance(address);
             }
+            throw error;
         }
     }
 
@@ -114,12 +104,62 @@ class WalletConnector {
 
     async switchRpcProvider() {
         try {
+            await new Promise(resolve => setTimeout(resolve, 1000));
             this.currentRpcIndex = (this.currentRpcIndex + 1) % this.rpcUrls.length;
-            const newProvider = new Web3.providers.HttpProvider(this.rpcUrls[this.currentRpcIndex]);
-            this.web3.setProvider(newProvider);
-            console.log(`Alternando para RPC: ${this.rpcUrls[this.currentRpcIndex]}`);
+            
+            const provider = new Web3.providers.HttpProvider(this.rpcUrls[this.currentRpcIndex], {
+                timeout: 10000,
+                headers: [
+                    {
+                        name: 'Cache-Control',
+                        value: 'no-cache'
+                    }
+                ]
+            });
+
+            const web3Temp = new Web3(provider);
+            await web3Temp.eth.getBlockNumber();
+            
+            this.web3.setProvider(provider);
+            console.log(`RPC alternado para: ${this.rpcUrls[this.currentRpcIndex]}`);
+            
+            return true;
         } catch (error) {
-            console.error('Erro ao alternar RPC:', error);
+            console.warn(`Falha no RPC ${this.rpcUrls[this.currentRpcIndex]}:`, error);
+            if (this.currentRpcIndex < this.rpcUrls.length - 1) {
+                return this.switchRpcProvider();
+            }
+            throw new Error('Todos os RPCs falharam');
+        }
+    }
+
+    async verificarRede() {
+        try {
+            const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+            if (chainId !== this.chainId) {
+                await window.ethereum.request({
+                    method: 'wallet_switchEthereumChain',
+                    params: [{ chainId: this.chainId }],
+                });
+            }
+        } catch (error) {
+            if (error.code === 4902) {
+                await window.ethereum.request({
+                    method: 'wallet_addEthereumChain',
+                    params: [{
+                        chainId: this.chainId,
+                        chainName: 'BSC Testnet',
+                        nativeCurrency: {
+                            name: 'tBNB',
+                            symbol: 'tBNB',
+                            decimals: 18
+                        },
+                        rpcUrls: this.rpcUrls,
+                        blockExplorerUrls: ['https://testnet.bscscan.com/']
+                    }]
+                });
+            }
+            throw error;
         }
     }
 
