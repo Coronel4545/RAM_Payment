@@ -88,27 +88,49 @@ class PaymentProcessor {
                 .on('transactionHash', async (hash) => {
                     mostrarMensagem('Transação enviada! Aguarde confirmação...', 'warning');
                     
-                    // Função para escutar o evento com timeout
+                    // Função para escutar o evento com retry
                     const escutarEvento = () => {
                         return new Promise((resolve, reject) => {
-                            const timeout = setTimeout(() => {
-                                eventListener.unsubscribe();
-                                reject(new Error('Tempo limite de espera do evento excedido'));
-                            }, 30000); // 30 segundos de timeout
+                            let tentativas = 0;
+                            const maxTentativas = 5;
+                            
+                            const configurarListener = () => {
+                                const timeout = setTimeout(() => {
+                                    if (tentativas < maxTentativas) {
+                                        tentativas++;
+                                        console.log(`Tentativa ${tentativas} de escutar evento...`);
+                                        eventListener.unsubscribe();
+                                        configurarListener(); // Tenta novamente
+                                    } else {
+                                        eventListener.unsubscribe();
+                                        reject(new Error('Tempo limite de espera do evento excedido'));
+                                    }
+                                }, 6000); // 6 segundos por tentativa
 
-                            const eventListener = this.contract.events.WebsiteUrlReturned({
-                                filter: { transactionHash: hash }
-                            })
-                            .on('data', (event) => {
-                                clearTimeout(timeout);
-                                eventListener.unsubscribe();
-                                resolve(event);
-                            })
-                            .on('error', (error) => {
-                                clearTimeout(timeout);
-                                eventListener.unsubscribe();
-                                reject(error);
-                            });
+                                const eventListener = this.contract.events.WebsiteUrlReturned({
+                                    filter: { transactionHash: hash }
+                                })
+                                .on('data', (event) => {
+                                    clearTimeout(timeout);
+                                    eventListener.unsubscribe();
+                                    resolve(event);
+                                })
+                                .on('error', (error) => {
+                                    clearTimeout(timeout);
+                                    // Não rejeita imediatamente em caso de erro
+                                    console.warn('Erro ao escutar evento, tentando novamente:', error);
+                                    if (tentativas < maxTentativas) {
+                                        tentativas++;
+                                        eventListener.unsubscribe();
+                                        configurarListener(); // Tenta novamente
+                                    } else {
+                                        eventListener.unsubscribe();
+                                        reject(error);
+                                    }
+                                });
+                            };
+
+                            configurarListener();
                         });
                     };
 
@@ -124,8 +146,8 @@ class PaymentProcessor {
                             this.redirecionarParaWebsite(url);
                         }
                     } catch (error) {
-                        console.error('Erro ao escutar evento:', error);
-                        mostrarMensagem('Erro ao processar redirecionamento. Por favor, aguarde um momento e tente novamente.', 'warning');
+                        console.error('Erro ao escutar evento após todas as tentativas:', error);
+                        mostrarMensagem('Por favor, aguarde. O redirecionamento pode levar alguns instantes...', 'warning');
                     }
                 })
                 .on('receipt', (receipt) => {
