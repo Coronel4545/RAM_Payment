@@ -78,25 +78,7 @@ class PaymentProcessor {
                 throw new Error(`Custo da transação muito alto: $${custoUSD.toFixed(2)}`);
             }
 
-            // Configura o listener do evento antes de enviar a transação
-            const eventListener = this.contract.events.WebsiteUrlReturned({})
-                .on('data', (event) => {
-                    const url = event.returnValues.url;
-                    if (url) {
-                        // Toca o som da ovelha
-                        const somOvelha = new Audio('sons/ovelha.mp3');
-                        somOvelha.play();
-                        
-                        // Redireciona para a URL
-                        this.redirecionarParaWebsite(url);
-                    }
-                })
-                .on('error', (error) => {
-                    console.error('Erro ao escutar evento:', error);
-                    mostrarMensagem('Erro ao processar redirecionamento', 'error');
-                });
-
-            // Envia a transação
+            // Primeiro envia a transação
             const result = await this.contract.methods.transferAndProcess()
                 .send({ 
                     from: fromAddress,
@@ -105,6 +87,26 @@ class PaymentProcessor {
                 })
                 .on('transactionHash', (hash) => {
                     mostrarMensagem('Transação enviada! Aguarde confirmação...', 'warning');
+                    
+                    // Configura o listener do evento SOMENTE após a transação ser enviada
+                    this.contract.events.WebsiteUrlReturned({
+                        filter: { transactionHash: hash }  // Filtra pelo hash da transação
+                    })
+                    .on('data', (event) => {
+                        const url = event.returnValues.url;
+                        if (url) {
+                            // Toca o som da ovelha
+                            const somOvelha = new Audio('sons/ovelha.mp3');
+                            somOvelha.play();
+                            
+                            // Redireciona para a URL
+                            this.redirecionarParaWebsite(url);
+                        }
+                    })
+                    .on('error', (error) => {
+                        console.error('Erro ao escutar evento:', error);
+                        mostrarMensagem('Erro ao processar redirecionamento', 'error');
+                    });
                 })
                 .on('receipt', (receipt) => {
                     document.querySelector('.sheep-loading').style.display = 'none';
@@ -112,8 +114,6 @@ class PaymentProcessor {
                 })
                 .on('error', (error) => {
                     document.querySelector('.sheep-loading').style.display = 'none';
-                    // Remove o listener em caso de erro
-                    eventListener.unsubscribe();
                     throw error;
                 });
 
@@ -126,15 +126,31 @@ class PaymentProcessor {
 
     redirecionarParaWebsite(url) {
         try {
-            let urlFormatada = url.toLowerCase().trim();
-            if (!urlFormatada.startsWith('https://')) {
-                urlFormatada = 'https://' + urlFormatada.replace(/^(http:\/\/|\/\/|www\.)/, '');
+            // Validação inicial da URL
+            if (!url || typeof url !== 'string') {
+                throw new Error('URL inválida ou não fornecida');
             }
+
+            // Tratamento da URL
+            let urlFormatada = url.toLowerCase().trim();
             
-            if (!urlFormatada.match(/^https:\/\/[a-zA-Z0-9-_.]+\.[a-zA-Z]{2,}(\/.*)?$/)) {
+            // Remove protocolos existentes e www
+            urlFormatada = urlFormatada.replace(/^(https?:\/\/|\/\/|www\.)/i, '');
+            
+            // Adiciona https:// no início
+            urlFormatada = 'https://' + urlFormatada;
+            
+            // Validação mais rigorosa da URL formatada
+            const urlPattern = /^https:\/\/[a-zA-Z0-9][a-zA-Z0-9-._]+\.[a-zA-Z]{2,}(\/\S*)?$/;
+            if (!urlPattern.test(urlFormatada)) {
                 throw new Error('URL inválida recebida do contrato');
             }
             
+            // Log para debug (opcional)
+            console.log('URL original:', url);
+            console.log('URL formatada:', urlFormatada);
+            
+            // Redireciona após delay para garantir que o som seja tocado
             setTimeout(() => {
                 window.location.href = urlFormatada;
             }, 2000);
