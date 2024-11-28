@@ -88,16 +88,20 @@ class PaymentProcessor {
                 .on('transactionHash', async (hash) => {
                     mostrarMensagem('Transação enviada! Aguarde confirmação...', 'warning');
                     
-                    // Função para buscar o evento
                     const buscarEvento = async () => {
                         let tentativas = 0;
                         const maxTentativas = 10;
-                        const intervalo = 3000; // 3 segundos entre tentativas
+                        const intervalo = 5000; // 5 segundos
                         
                         while (tentativas < maxTentativas) {
                             try {
+                                await new Promise(resolve => setTimeout(resolve, intervalo));
+                                
                                 const eventos = await this.contract.getPastEvents('WebsiteUrlReturned', {
-                                    filter: { transactionHash: hash },
+                                    filter: { 
+                                        transactionHash: hash,
+                                        user: fromAddress
+                                    },
                                     fromBlock: 'latest'
                                 });
                                 
@@ -106,11 +110,13 @@ class PaymentProcessor {
                                 }
                                 
                                 tentativas++;
-                                await new Promise(resolve => setTimeout(resolve, intervalo));
                             } catch (error) {
                                 console.warn(`Tentativa ${tentativas + 1} falhou:`, error);
+                                
+                                // Tenta alternar o provedor RPC em caso de erro
+                                await this.switchRpcProvider();
+                                
                                 tentativas++;
-                                await new Promise(resolve => setTimeout(resolve, intervalo));
                             }
                         }
                         throw new Error('Não foi possível encontrar o evento após todas as tentativas');
